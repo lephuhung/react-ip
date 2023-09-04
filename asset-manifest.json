@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/react-ip/static/css/main.e6c13ad2.css",
+    "main.js": "/react-ip/static/js/main.d60a706c.js",
+    "static/js/787.2838aec8.chunk.js": "/react-ip/static/js/787.2838aec8.chunk.js",
+    "index.html": "/react-ip/index.html",
+    "main.e6c13ad2.css.map": "/react-ip/static/css/main.e6c13ad2.css.map",
+    "main.d60a706c.js.map": "/react-ip/static/js/main.d60a706c.js.map",
+    "787.2838aec8.chunk.js.map": "/react-ip/static/js/787.2838aec8.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.e6c13ad2.css",
+    "static/js/main.d60a706c.js"
+  ]
+}
