@@ -1,88 +1,94 @@
-import React, { useEffect, useState } from 'react';
-import './index.css';
-import {
-  DesktopOutlined,
-  FileOutlined,
-  PieChartOutlined,
-  TeamOutlined,
-  UserOutlined,
-} from '@ant-design/icons';
-import type { MenuProps } from 'antd';
-
-import { Breadcrumb, Layout, Menu, theme, Col, Row, message } from 'antd';
-import Image from './image';
-import axios from 'axios';
-import { BrowserRouter as Router, Route, Link } from "react-router-dom";
-const { Header, Content, Footer, Sider } = Layout;
-type MenuItem = Required<MenuProps>['items'][number];
-
-function getItem(
-  label: React.ReactNode,
-  key: React.Key,
-  icon?: React.ReactNode,
-  children?: MenuItem[],
-): MenuItem {
-  return {
-    key,
-    icon,
-    children,
-    label,
-  } as MenuItem;
+import React, { Component } from "react";
+import { BrowserRouter as Router, Route, Link, Routes } from "react-router-dom";
+import { Layout, Menu } from "antd";
+import { DesktopOutlined, PieChartFilled } from "@ant-design/icons";
+import Token from './Token'
+import Agents from './Agents'
+function Dashboard() {
+  return <div>Dashboard</div>;
+}
+function Meseros() {
+  return <div>Meseros</div>;
 }
 
-const items: MenuItem[] = [
-  getItem('Option 1', '1', <PieChartOutlined />),
-  getItem('Image', '2', <DesktopOutlined />),
-  getItem('Agents', 'sub1', <UserOutlined />, [
-    getItem('Tom', '3'),
-    getItem('Bill', '4'),
-    getItem('Alex', '5'),
-  ]),
-  getItem('Webhooks', 'sub2', <TeamOutlined />, [getItem('Team 1', '6'), getItem('Team 2', '8')]),
-  getItem('Config', '9', <FileOutlined />),
-];
+const { Header, Content, Footer, Sider } = Layout;
 
-const App: React.FC = () => {
-  const [collapsed, setCollapsed] = useState(false);
-  const {
-    token: { colorBgContainer },
-  } = theme.useToken();
-  type image = { name: string, url: string }
-  const [imagelist, setimagelist] = useState<image[]>([]);
-  const [messageApi, contextHolder] = message.useMessage();
-  const info = () => {
-    messageApi.success('Hello, Ant Design!');
+class App extends Component {
+  state = {
+    collapsed: false,
   };
-  useEffect(() => {
-    axios.get('https://z-image-cdn.com/list_images?token=lephuhung77').then((res) => {
-      setimagelist(res.data)
-    }).catch((e) => {
 
-    })
-  }, []);
-  return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider collapsible collapsed={collapsed} onCollapse={(value) => setCollapsed(value)}>
-        <div className="demo-logo-vertical" />
-        <Menu theme="dark" defaultSelectedKeys={['1']} mode="inline" items={items} />
-      </Sider>
-      <Layout>
-        <Header style={{ padding: 0, background: colorBgContainer }} />
-        <Content style={{ margin: '0 16px' }}>
-          <Row gutter={[16,16]}>
-            {
-              imagelist.map((item, index) => {
-                return (<Col span={4} >
-                  <Image key={index} url={item.url} name={item.name} />
-                </Col>)
-              })
-            }
-          </Row>
-        </Content>
-        <Footer style={{ textAlign: 'center' }}>Ant Design ©2023 Created by Ant UED</Footer>
-      </Layout>
-    </Layout>
-  );
-};
+  onCollapse = (collapsed: any) => {
+    this.setState({ collapsed });
+  };
+  toggle = () => {
+    this.setState({
+      collapsed: !this.state.collapsed,
+    });
+  };
 
+  render() {
+    return (
+        <Layout style={{ minHeight: "100vh" }}>
+          <Sider
+            collapsible
+            collapsed={this.state.collapsed}
+            onCollapse={this.onCollapse}
+          >
+            <div className="logo" />
+            <Menu theme="dark" defaultSelectedKeys={["1"]} mode="inline">
+              <Menu.Item key="1">
+                <PieChartFilled />
+                <span>Deshboard</span>
+                <Link to="/" />
+              </Menu.Item>
+              <Menu.Item key="2">
+                <DesktopOutlined />
+                <span>Meseros</span>
+                <Link to="/meseros" />
+              </Menu.Item>
+              <Menu.Item key="3">
+                <DesktopOutlined />
+                <span>Token</span>
+                <Link to="/token" />
+              </Menu.Item>
+            <Menu.Item key="4">
+                <DesktopOutlined />
+                <span>Agents</span>
+                <Link to="/agents" />
+              </Menu.Item>
+            </Menu>
+          </Sider>
+          <Layout>
+            <Header style={{ background: "#fff", padding: 0, paddingLeft: 16 }}>
+              {/* <Icon
+                className="trigger"
+                type={this.state.collapsed ? "menu-unfold" : "menu-fold"}
+                style={{ cursor: "pointer" }}
+                onClick={this.toggle}
+              /> */}
+            </Header>
+            <Content
+              style={{
+                margin: "24px 16px",
+                padding: 24,
+                background: "#fff",
+                minHeight: 280,
+              }}
+            >
+              <Routes>
+                <Route path="/" Component={Dashboard} />
+                <Route path="/Agent" Component={Meseros} />
+                <Route path="/token" Component={Token} />
+                <Route path="/agents" Component={Agents} />
+              </Routes>
+            </Content>
+            <Footer style={{ textAlign: "center" }}>
+              Ant Design ©2016 Created by Ant UED
+            </Footer>
+          </Layout>
+        </Layout>
+    );
+  }
+}
 export default App;
