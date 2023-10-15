@@ -2,7 +2,7 @@
   "name": "iplogger",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://lephuhung.github.io/react-ip/",
+  "homepage": "https://lephuhung.github.io/logger/",
   "dependencies": {
     "@ant-design/icons": "^5.2.6",
     "@testing-library/jest-dom": "^5.17.0",
