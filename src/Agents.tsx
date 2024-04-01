@@ -163,7 +163,7 @@ export const Agents = () => {
         <Form.Item name='zalo_name' label="Zalo name" >
           <Input />
         </Form.Item>
-        <Form.Item name='webhook_id' label="ID Webhooks" rules={[{ type: 'number', min: 0, max: 99 }]}>
+        <Form.Item name='webhook_id' label="ID Webhooks" rules={[{ type: 'number', min: 0, max: 1000 }]}>
           <Select
             placeholder="Lựa chọn webhook bắn dữ liệu"
             onChange={SelectChange}
