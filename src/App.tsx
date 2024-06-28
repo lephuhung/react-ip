@@ -10,9 +10,8 @@ import Logger from "./Loggger";
 import LoggerError from "./Loggger_Error"
 import Filter from "./Find_Logger"
 import Images from "./Imageview"
-function Dashboard() {
-  return <div>Dashboard</div>;
-}
+import Zns_layout from "./Zns";
+import Dashboard from "./Dashboard";
 
 
 const { Header, Content, Footer, Sider } = Layout;
@@ -73,15 +72,20 @@ class App extends Component {
               </Menu.Item>
               <Menu.Item key="7">
                 <LoginOutlined/>
+                <span>ZNS</span>
+                <Link to="/zns" />
+              </Menu.Item>
+              <Menu.Item key="8">
+                <LoginOutlined/>
                 <span>Logger Error</span>
                 <Link to="/logger-error" />
               </Menu.Item>
-              <Menu.Item key="8">
+              <Menu.Item key="9">
                 <FilterOutlined/>
                 <span>Filter Logger</span>
                 <Link to="/filter" />
               </Menu.Item>
-              <Menu.Item key="9">
+              <Menu.Item key="10">
                 <FileImageOutlined/>
                 <span>Image</span>
                 <Link to="/images" />
@@ -115,10 +119,11 @@ class App extends Component {
                 <Route path="/logger-error" Component={LoggerError} />
                 <Route path="/filter" Component={Filter} />
                 <Route path="/images" Component={Images} />
+                <Route path="zns" Component={Zns_layout} />
               </Routes>
             </Content>
             <Footer style={{ textAlign: "center" }}>
-              Ant Design ©2016 Created by Ant UED
+              Ant Design ©2024 Created by Ant UED
             </Footer>
           </Layout>
         </Layout>

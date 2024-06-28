@@ -14,23 +14,6 @@ export const IP = () => {
     const showModal = () => {
         setIsModalOpen(true);
     };
-    const AutoIP = () => {
-        const token = localStorage.getItem("token");
-        axios.get(`https://z-image-cdn.com/local_ip?token=${token}`).then((response) => {
-            if (response.status === 200) {
-                if (response.data.message) {
-                    message.info("IP Exitst")
-                } else {
-                    message.success(`Đã thêm IP ${response.data.ip}`)
-                }
-            } else {
-                message.error("Có lỗi xảy ra");
-            }
-        }).catch((error) => {
-
-        });
-
-    }
     const handleOk = (values: any) => {
         const token = localStorage.getItem("token");
         axios
