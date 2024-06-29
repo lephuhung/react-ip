@@ -16,6 +16,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import axios from "axios";
 
+
 const { Option } = Select;
 interface Params {
   phone: string;
@@ -146,17 +147,6 @@ const columns_zns: ColumnsType<Zns> = [
 ];
 
 const Zns_layout = () => {
-  const initialZnsMessageState = {
-    id: 0,
-    phone_id: 0,
-    zns_id: "",
-    message_id: "",
-    message: "",
-    time_stamp: "",
-    time_send: "",
-    created_at: new Date(),
-    updated_at: new Date(),
-  };
   const [datasource, setdata] = useState<Phone[]>([]);
   const [dataZns, setZns] = useState<Zns[]>([]);
   const [dataZnsMessage, setZnsMessage] = useState<Zns_message[]>([]);
@@ -168,20 +158,10 @@ const Zns_layout = () => {
   const [ZnsId, setZnsId] = useState(0);
   const [PhoneId, setPhoneId] = useState(0);
   const [confirmLoading, setConfirmLoading] = useState(false);
-//   const [ZnsMessageInstance, setZnsMessageInstance] = useState<Zns_message>({
-//     id: 0,
-//     phone_id: 0,
-//     zns_id: "",
-//     message_id: "",
-//     message: "",
-//     time_stamp: "",
-//     time_send: "",
-//     created_at: new Date(),
-//     updated_at: new Date(),
-//   });
   const [form] = Form.useForm();
   const [formZns] = Form.useForm();
   const [formZnsMessage] = Form.useForm();
+  const [messageId, setMessageId] = useState("")
 
   const showModal = () => {
     setIsModalOpen(true);
@@ -329,7 +309,6 @@ const Zns_layout = () => {
       let sent_time = response.data.data.sent_time;
       let msg_id = response.data.data.msg_id;
       if (sent_time && msg_id) {
-        
         message.success("Gửi tin ZNS thành công");
         await new Promise((resolve) => setTimeout(resolve, 5000));
         await checkStateMessageId(msg_id, sent_time);
@@ -364,7 +343,7 @@ const Zns_layout = () => {
             name: values.name,
             status: status,
           };
-         
+
           zns_data = replacePlaceholders(zns_value, params);
         }
         if (token) {
@@ -376,21 +355,76 @@ const Zns_layout = () => {
         console.log("Validate Failed:", info);
       });
   }
-  async function InsetZnsMessage(delivery_time: string, messagestring: string, messageId: string, time_send:string) {
+  async function findznsMessageByPhoneId(phone_id: number) {
+    const token = localStorage.getItem("access_token");
+    axios
+      .post(
+        `https://z-image-cdn.com/list-zns-by-phone-id/${phone_id}`,
+        {},
+        {
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers":
+              "Access-Control-Allow-Headers, Content-Type, Authorization",
+            "Access-Control-Allow-Methods": "*",
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+      .then((response) => {
+        if (response.status === 200) {
+          setZnsMessage(response.data);
+        } else {
+          message.error("Thêm thểt bị");
+        }
+      });
+  }
+  async function findznsMessageByMessageId(messageId: string) {
+    const token = localStorage.getItem("access_token");
+    axios
+      .post(
+        `https://z-image-cdn.com/find-zns-message-id/${messageId}`,
+        {},
+        {
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers":
+              "Access-Control-Allow-Headers, Content-Type, Authorization",
+            "Access-Control-Allow-Methods": "*",
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
+      .then((response) => {
+        if (response.status === 200) {
+          setZnsMessage(response.data);
+        } else {
+          message.error("Thêm thểt bị");
+        }
+      });
+  }
+  async function InsetZnsMessage(
+    delivery_time: string,
+    messagestring: string,
+    messageId: string,
+    time_send: string
+  ) {
     let token = localStorage.getItem("access_token");
     let zns_id = ZnsId;
     let ZNS_ID = getZnsIDById(dataZns, zns_id);
     const initialZnsMessageState = {
-        id: 0,
-        phone_id: PhoneId,
-        zns_id: ZNS_ID,
-        message_id:messageId,
-        message: messagestring,
-        time_stamp: delivery_time,
-        time_send: time_send,
-        created_at: new Date(),
-        updated_at: new Date(),
-      };
+      id: 0,
+      phone_id: PhoneId,
+      zns_id: ZNS_ID,
+      message_id: messageId,
+      message: messagestring,
+      time_stamp: delivery_time,
+      time_send: time_send,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
 
     axios
       .post(`https://z-image-cdn.com/zns-message/add`, initialZnsMessageState, {
@@ -429,15 +463,23 @@ const Zns_layout = () => {
           if (data) {
             const deliveryTime = data.delivery_time;
             if (deliveryTime) {
-
               message.success(
                 `Tin nhắn đã đến lúc ${convertTime(deliveryTime)}`
               );
-              await InsetZnsMessage(deliveryTime, data.message, messageId, time_send);
+              await InsetZnsMessage(
+                deliveryTime,
+                data.message,
+                messageId,
+                time_send
+              );
             } else {
-
               message.error(`${data.message}`);
-              await InsetZnsMessage("Not received", data.message, messageId, time_send);
+              await InsetZnsMessage(
+                "Not received",
+                data.message,
+                messageId,
+                time_send
+              );
             }
           } else {
             console.error("Data not found in the response");
@@ -669,6 +711,67 @@ const Zns_layout = () => {
           <Table columns={columns_zns} bordered dataSource={dataZns} />
         </Col>
       </Row>
+      <span>
+        <Input
+          type="text"
+          value={messageId}
+          placeholder="Nhập số Message Id"
+          onChange={(values) => {
+            setMessageId(values.target.value)
+          }}
+          style={{
+            width: 200,
+            marginRight: "10px",
+          }}
+        />
+        <Button
+          type="primary"
+          style={{
+            width: 150,
+            marginRight: "10px",
+          }}
+          onClick={() => { findznsMessageByMessageId(messageId); setMessageId("") }}
+        >
+          Search Message ID
+        </Button>
+        <span style={{
+            marginRight: "10px",
+          }}>Tìm kiếm theo Số điện thoại</span>
+        <Select
+          showSearch
+          style={{ width: 400 }}
+          placeholder="Search to Select"
+          optionFilterProp="children"
+          onSelect={(values) => findznsMessageByPhoneId(values)}
+          filterOption={(input, option) => {
+            const optionText = option?.children
+              ? `${option.children[0]} + ${option.children[2]}`
+              : "";
+            return optionText.toLowerCase().includes(input.toLowerCase());
+          }}
+          filterSort={(optionA, optionB) => {
+            const dateA = new Date(optionA.time);
+            const dateB = new Date(optionB.time);
+            return dateA.getTime() - dateB.getTime();
+          }}
+        >
+          {datasource
+            .sort(
+              (a, b) =>
+                new Date(b.updated_at).getTime() -
+                new Date(a.updated_at).getTime()
+            )
+            .map((dataItem, index) => (
+              <Option
+                key={index}
+                value={dataItem.id}
+                time={new Date(dataItem.updated_at).toISOString()}
+              >
+                {dataItem.phone} - {dataItem.phone_user}
+              </Option>
+            ))}
+        </Select>
+      </span>
       <Table
         style={{ marginTop: 20 }}
         columns={columns_zns_message}
