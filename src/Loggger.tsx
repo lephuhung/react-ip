@@ -29,6 +29,28 @@ const convertTime = (value: string) => {
   const outputDate = `${day}/${month}/${year} - ${hours}:${minutes}:${seconds}`;
   return outputDate;
 }
+function formatDateTime(datetimeStr: string): string {
+  // Parse the ISO 8601 string into a Date object (assuming the datetimeStr is in UTC)
+  const dt = new Date(datetimeStr);
+
+  // Adjust the date to UTC+7 timezone
+  dt.setHours(dt.getHours() + 7);
+
+  // Extract the date components
+  const year = dt.getFullYear();
+  const month = String(dt.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+  const day = String(dt.getDate()).padStart(2, "0");
+
+  // Extract the time components
+  const hours = String(dt.getHours()).padStart(2, "0");
+  const minutes = String(dt.getMinutes()).padStart(2, "0");
+  const seconds = String(dt.getSeconds()).padStart(2, "0");
+
+  // Combine time and date in the desired format
+  const formattedStr = `${hours}:${minutes}:${seconds} - ${day}/${month}/${year}`;
+
+  return formattedStr;
+}
 const columns: ColumnsType<DataType> = [
   {
     title: "STT",
@@ -76,7 +98,7 @@ const columns: ColumnsType<DataType> = [
     title: "Timestamp",
     key: "time_stamp",
     dataIndex: "time_stamp",
-    render: (text) => <Space>{text}</Space>,
+    render: (text) => <Space>{formatDateTime(text)}</Space>,
   },
   {
     title: "Hành động",

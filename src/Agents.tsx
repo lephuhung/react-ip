@@ -1,9 +1,19 @@
 import React, { useEffect, useState } from "react";
 import "./index.css";
-import { Space, Table, Button, Modal, Form, Input, message, Select, Tag } from "antd";
+import {
+  Space,
+  Table,
+  Button,
+  Modal,
+  Form,
+  Input,
+  message,
+  Select,
+  Tag,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
 import axios from "axios";
-import Image from "./image"
+import Image from "./image";
 interface DataType {
   id: number;
   name: string;
@@ -19,6 +29,28 @@ interface Webhooks {
   webhook_name: string;
 }
 const { Option } = Select;
+function formatDateTime(datetimeStr: string): string {
+  // Parse the ISO 8601 string into a Date object (assuming the datetimeStr is in UTC)
+  const dt = new Date(datetimeStr);
+
+  // Adjust the date to UTC+7 timezone
+  dt.setHours(dt.getHours() + 7);
+
+  // Extract the date components
+  const year = dt.getFullYear();
+  const month = String(dt.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+  const day = String(dt.getDate()).padStart(2, "0");
+
+  // Extract the time components
+  const hours = String(dt.getHours()).padStart(2, "0");
+  const minutes = String(dt.getMinutes()).padStart(2, "0");
+  const seconds = String(dt.getSeconds()).padStart(2, "0");
+
+  // Combine time and date in the desired format
+  const formattedStr = `${hours}:${minutes}:${seconds} - ${day}/${month}/${year}`;
+
+  return formattedStr;
+}
 const columns: ColumnsType<DataType> = [
   {
     title: "STT",
@@ -47,9 +79,7 @@ const columns: ColumnsType<DataType> = [
     title: "Token",
     key: "toekn",
     dataIndex: "token",
-    render: (text) => (
-      <Image name={text} />
-    ),
+    render: (text) => <Image name={text} />,
   },
   {
     title: "Webhook ID",
@@ -61,7 +91,7 @@ const columns: ColumnsType<DataType> = [
     title: "Ngày tạo",
     key: "created_at",
     dataIndex: "created_at",
-    render: (text) => <Space>{text}</Space>,
+    render: (text) => <Space>{formatDateTime(text)}</Space>,
   },
 ];
 export const Agents = () => {
@@ -69,7 +99,6 @@ export const Agents = () => {
   const [datasource, setdata] = useState<DataType[]>([]);
   const [webhooks, setwebhooks] = useState<Webhooks[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
   const showModal = () => {
     setIsModalOpen(true);
     const token = localStorage.getItem("access_token");
@@ -80,37 +109,39 @@ export const Agents = () => {
       .then((response) => {
         setwebhooks(response.data);
       })
-      .catch((error) => { });
+      .catch((error) => {});
   };
-  const SelectChange=(value:number)=>{
-      form.setFieldValue('id', value);
-  }
-  const handleOk = (values: any) => {
+  const SelectChange = (value: number) => {
+    form.setFieldValue("id", value);
+  };
+  const handleOk = () => {
     const token = localStorage.getItem("access_token");
-    axios
-      .post("https://z-image-cdn.com/agents/add", values, {
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers":
-            "Access-Control-Allow-Headers, Content-Type, Authorization",
-          "Access-Control-Allow-Methods": "*",
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-      })
-      .then((response) => {
-        if (response.status === 200) {
-          message.success('Thêm thành công')
-          setIsModalOpen(false);
-        } else {
-          message.error('Thêm thất bại')
-        }
-      })
-      .catch((error) => {
-
-      
-      });
-      // console.log(values);
+    form.validateFields().then((values) => {
+      axios
+        .post("https://z-image-cdn.com/agents/add", values, {
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers":
+              "Access-Control-Allow-Headers, Content-Type, Authorization",
+            "Access-Control-Allow-Methods": "*",
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        .then((response) => {
+          if (response.status === 200) {
+            message.success("Thêm thành công");
+            setIsModalOpen(false);
+          } else {
+            message.error("Thêm thất bại");
+          }
+        })
+        .catch((error) => {})
+        .catch((e) => {
+          console.error(e);
+        });
+    });
+    // console.log(values);
   };
 
   const handleCancel = () => {
@@ -123,13 +154,13 @@ export const Agents = () => {
 
   /* eslint-disable no-template-curly-in-string */
   const validateMessages = {
-    required: '${label} is required!',
+    required: "${label} is required!",
     types: {
-      email: '${label} is not a valid email!',
-      number: '${label} is not a valid number!',
+      email: "${label} is not a valid email!",
+      number: "${label} is not a valid number!",
     },
     number: {
-      range: '${label} must be between ${min} and ${max}',
+      range: "${label} must be between ${min} and ${max}",
     },
   };
   useEffect(() => {
@@ -141,54 +172,62 @@ export const Agents = () => {
       .then((response) => {
         setdata(response.data);
       })
-      .catch((error) => { });
-  }, []);
-  return (<div>
-    <Button onClick={() => { showModal() }} type="primary" style={{ marginBottom: 16 }}>
-      Thêm Agents
-    </Button>
-    <Table columns={columns} dataSource={datasource} />
-    <Modal title="Basic Modal" open={isModalOpen} onCancel={handleCancel}>
-      <Form
-        {...layout}
-        form={form}
-        name="nest-messages"
-        onFinish={handleOk}
-        style={{ maxWidth: 600 }}
-        validateMessages={validateMessages}
+      .catch((error) => {});
+  }, [isModalOpen]);
+  return (
+    <div>
+      <Button
+        onClick={() => {
+          showModal();
+        }}
+        type="primary"
+        style={{ marginBottom: 16 }}
       >
-        <Form.Item name='name' label="Webhooks Name" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name='zalo_name' label="Zalo name" >
-          <Input />
-        </Form.Item>
-        <Form.Item name='webhook_id' label="ID Webhooks" rules={[{ type: 'number', min: 0, max: 1000 }]}>
-          <Select
-            placeholder="Lựa chọn webhook bắn dữ liệu"
-            onChange={SelectChange}
-            allowClear
+        Thêm Agents
+      </Button>
+      <Table columns={columns} dataSource={datasource} />
+      <Modal title="Basic Modal" open={isModalOpen} onOk={handleOk} onCancel={handleCancel}>
+        <Form
+          {...layout}
+          form={form}
+          name="nest-messages"
+          style={{ maxWidth: 600 }}
+          validateMessages={validateMessages}
+        >
+          <Form.Item
+            name="name"
+            label="Webhooks Name"
+            rules={[{ required: true }]}
           >
-            {webhooks&&webhooks.map((webhook:Webhooks, index:number)=>{
-              return (
-                <Option value={webhook.id}>{webhook.webhook_name}</Option>
-              )
-            })
-            
-          }
-          </Select>
-        </Form.Item>
-        <Form.Item name='zalo_number_target' label="Zalo number target">
-          <Input />
-        </Form.Item>
-        <Form.Item wrapperCol={{ ...layout.wrapperCol, offset: 8 }}>
-          <Button type="primary" htmlType="submit">
-            Lưu
-          </Button>
-        </Form.Item>
-      </Form>
-    </Modal>
-  </div>
+            <Input />
+          </Form.Item>
+          <Form.Item name="zalo_name" label="Zalo name">
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="webhook_id"
+            label="ID Webhooks"
+            rules={[{ type: "number", min: 0, max: 1000 }]}
+          >
+            <Select
+              placeholder="Lựa chọn webhook bắn dữ liệu"
+              onChange={SelectChange}
+              allowClear
+            >
+              {webhooks &&
+                webhooks.map((webhook: Webhooks, index: number) => {
+                  return (
+                    <Option value={webhook.id}>{webhook.webhook_name}</Option>
+                  );
+                })}
+            </Select>
+          </Form.Item>
+          <Form.Item name="zalo_number_target" label="Zalo number target">
+            <Input />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
   );
 };
 export default Agents;

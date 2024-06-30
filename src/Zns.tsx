@@ -16,7 +16,6 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import axios from "axios";
 
-
 const { Option } = Select;
 interface Params {
   phone: string;
@@ -39,6 +38,7 @@ interface Zns {
   zns_name: string;
   zns_value: string;
   zns_id: string;
+  discord_url: string;
   created_at: Date;
   updated_at: Date;
 }
@@ -145,7 +145,23 @@ const columns_zns: ColumnsType<Zns> = [
     render: (text) => <Space>{formatDateTime(text)}</Space>,
   },
 ];
+async function sendDiscord(
+  message_id: string,
+  phoneNumber: string,
+  phone_user: string,
+  time_send: string,
+  zns_id: string,
+  discord_url: string
+) {
+  const info = `1. Đã gửi ZNS tới: ${phoneNumber} - Name: ${phone_user} - Lúc: ${time_send}\n2. Message ID: ${message_id} `;
 
+  const embed = {
+    username: `ZNS Logger - ${phone_user}`,
+    avatar_url: "https://stc-zaloid.zdn.vn/zaloid/client/images/favicon.png",
+    content: info,
+  };
+  await axios.post(discord_url, embed);
+}
 const Zns_layout = () => {
   const [datasource, setdata] = useState<Phone[]>([]);
   const [dataZns, setZns] = useState<Zns[]>([]);
@@ -161,7 +177,7 @@ const Zns_layout = () => {
   const [form] = Form.useForm();
   const [formZns] = Form.useForm();
   const [formZnsMessage] = Form.useForm();
-  const [messageId, setMessageId] = useState("")
+  const [messageId, setMessageId] = useState("");
 
   const showModal = () => {
     setIsModalOpen(true);
@@ -182,7 +198,7 @@ const Zns_layout = () => {
     form
       .validateFields()
       .then((values) => {
-        console.log("Received values of form: ", values);
+        // console.log("Received values of form: ", values);
         axios
           .post(`https://z-image-cdn.com/phone/add`, values, {
             headers: {
@@ -251,9 +267,17 @@ const Zns_layout = () => {
     const found = array.find((item) => item.id === id);
     return found ? found.zns_value : null;
   }
+  function getDiscordValueById(array: Zns[], id: number): string | null {
+    const found = array.find((item) => item.id === id);
+    return found ? found.discord_url : null;
+  }
   function getPhoneValueById(array: Phone[], id: number): string | null {
     const found = array.find((item) => item.id === id);
     return found ? found.phone : null;
+  }
+  function getPhoneUserValueById(array: Phone[], id: number): string | null {
+    const found = array.find((item) => item.id === id);
+    return found ? found.phone_user : null;
   }
   function getZnsIDById(array: Zns[], id: number): string | null {
     const found = array.find((item) => item.id === id);
@@ -291,7 +315,13 @@ const Zns_layout = () => {
       return (params as any)[key] || match;
     });
   }
-  async function sendZns(jsonString: string, accessToken: string) {
+  async function sendZns(
+    jsonString: string,
+    accessToken: string,
+    zns_id: string,
+    phoneNumber: string,
+    phone_user: string
+  ) {
     const url = "https://business.openapi.zalo.me/message/template";
     const headers = {
       "Content-Type": "application/json",
@@ -312,6 +342,16 @@ const Zns_layout = () => {
         message.success("Gửi tin ZNS thành công");
         await new Promise((resolve) => setTimeout(resolve, 5000));
         await checkStateMessageId(msg_id, sent_time);
+        let urlDiscord = getDiscordValueById(dataZns, ZnsId);
+        urlDiscord &&
+          (await sendDiscord(
+            msg_id,
+            phoneNumber,
+            phone_user,
+            convertTime(sent_time),
+            zns_id,
+            urlDiscord
+          ));
       } else {
         message.error("Gửi tin ZNS thất bại");
       }
@@ -348,7 +388,10 @@ const Zns_layout = () => {
         }
         if (token) {
           setConfirmLoading(true);
-          sendZns(zns_data, token);
+          let phoneValue = getPhoneUserValueById(datasource, PhoneId);
+          phoneValue &&
+            ZNS_ID &&
+            sendZns(zns_data, token, ZNS_ID, phoneNumberZns, phoneValue);
         }
       })
       .catch((info) => {
@@ -654,14 +697,20 @@ const Zns_layout = () => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        const [result1, result2, result3] = await Promise.all([
+        const token_zl = axios.get("https://z-image-cdn.com/token-zl", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const [result1, result2, result3, token_res] = await Promise.all([
           response1,
           response2,
           response3,
+          token_zl
         ]);
         setdata(result3.data);
         setZns(result1.data);
         setZnsMessage(result2.data);
+        localStorage.setItem("token-zl", token_res.data);
+        message.success("Đã cập nhật token mới");
       } catch (error) {
         console.log(error);
       } finally {
@@ -669,7 +718,7 @@ const Zns_layout = () => {
       }
     };
     fetchData();
-  }, [phoneNumberZns, confirmLoading]);
+  }, [phoneNumberZns, confirmLoading, isModalOpen, isModalOpenZns]);
 
   return (
     <div>
@@ -711,73 +760,82 @@ const Zns_layout = () => {
           <Table columns={columns_zns} bordered dataSource={dataZns} />
         </Col>
       </Row>
-      <span>
-        <Input
-          type="text"
-          value={messageId}
-          placeholder="Nhập số Message Id"
-          onChange={(values) => {
-            setMessageId(values.target.value)
-          }}
-          style={{
-            width: 200,
-            marginRight: "10px",
-          }}
+      <Row style={{ marginTop: "10px" }}>
+        <span>
+          <Input
+            type="text"
+            value={messageId}
+            placeholder="Nhập số Message Id"
+            onChange={(values) => {
+              setMessageId(values.target.value);
+            }}
+            style={{
+              width: 200,
+              marginRight: "10px",
+            }}
+          />
+          <Button
+            type="primary"
+            style={{
+              width: 150,
+              marginRight: "10px",
+            }}
+            onClick={() => {
+              findznsMessageByMessageId(messageId);
+              setMessageId("");
+            }}
+          >
+            Search Message ID
+          </Button>
+          <span
+            style={{
+              marginRight: "10px",
+            }}
+          >
+            Tìm kiếm theo Số điện thoại
+          </span>
+          <Select
+            showSearch
+            style={{ width: 400 }}
+            placeholder="Search to Select"
+            optionFilterProp="children"
+            onSelect={(values) => findznsMessageByPhoneId(values)}
+            filterOption={(input, option) => {
+              const optionText = option?.children
+                ? `${option.children[0]} + ${option.children[2]}`
+                : "";
+              return optionText.toLowerCase().includes(input.toLowerCase());
+            }}
+            filterSort={(optionA, optionB) => {
+              const dateA = new Date(optionA.time);
+              const dateB = new Date(optionB.time);
+              return dateA.getTime() - dateB.getTime();
+            }}
+          >
+            {datasource
+              .sort(
+                (a, b) =>
+                  new Date(b.updated_at).getTime() -
+                  new Date(a.updated_at).getTime()
+              )
+              .map((dataItem, index) => (
+                <Option
+                  key={index}
+                  value={dataItem.id}
+                  time={new Date(dataItem.updated_at).toISOString()}
+                >
+                  {dataItem.phone} - {dataItem.phone_user}
+                </Option>
+              ))}
+          </Select>
+        </span>
+        <Table
+          style={{ marginTop: 20 }}
+          columns={columns_zns_message}
+          bordered
+          dataSource={dataZnsMessage}
         />
-        <Button
-          type="primary"
-          style={{
-            width: 150,
-            marginRight: "10px",
-          }}
-          onClick={() => { findznsMessageByMessageId(messageId); setMessageId("") }}
-        >
-          Search Message ID
-        </Button>
-        <span style={{
-            marginRight: "10px",
-          }}>Tìm kiếm theo Số điện thoại</span>
-        <Select
-          showSearch
-          style={{ width: 400 }}
-          placeholder="Search to Select"
-          optionFilterProp="children"
-          onSelect={(values) => findznsMessageByPhoneId(values)}
-          filterOption={(input, option) => {
-            const optionText = option?.children
-              ? `${option.children[0]} + ${option.children[2]}`
-              : "";
-            return optionText.toLowerCase().includes(input.toLowerCase());
-          }}
-          filterSort={(optionA, optionB) => {
-            const dateA = new Date(optionA.time);
-            const dateB = new Date(optionB.time);
-            return dateA.getTime() - dateB.getTime();
-          }}
-        >
-          {datasource
-            .sort(
-              (a, b) =>
-                new Date(b.updated_at).getTime() -
-                new Date(a.updated_at).getTime()
-            )
-            .map((dataItem, index) => (
-              <Option
-                key={index}
-                value={dataItem.id}
-                time={new Date(dataItem.updated_at).toISOString()}
-              >
-                {dataItem.phone} - {dataItem.phone_user}
-              </Option>
-            ))}
-        </Select>
-      </span>
-      <Table
-        style={{ marginTop: 20 }}
-        columns={columns_zns_message}
-        bordered
-        dataSource={dataZnsMessage}
-      />
+      </Row>
       <Modal
         title="Thêm Số điện thoại"
         open={isModalOpen}
@@ -848,10 +906,16 @@ const Zns_layout = () => {
             name="zns_value"
             rules={[{ required: true, message: "Nhập tên người đặt hàng" }]}
           >
+            <Input.TextArea rows={4} placeholder="Nhập chuỗi ký tự JSON ZNS" />
+          </Form.Item>
+          <Form.Item
+            label="Discord URl"
+            name="discord_url"
+            rules={[{ required: true, message: "Nhập tên người đặt hàng" }]}
+          >
             <Input.TextArea
               rows={4}
-              placeholder="Nhập chuỗi ký tự JSON ZNS"
-              maxLength={6}
+              placeholder="Nhập chuỗi ký tự URL Discord"
             />
           </Form.Item>
         </Form>

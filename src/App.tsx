@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import React, { Component, useEffect } from "react";
 import { BrowserRouter as Router, Route, Link, Routes } from "react-router-dom";
 import { Layout, Menu } from "antd";
 import { DesktopOutlined, PieChartFilled, UserOutlined, TeamOutlined, ImportOutlined, LogoutOutlined, LoginOutlined, FileImageOutlined, FilterOutlined } from "@ant-design/icons";
@@ -12,7 +12,7 @@ import Filter from "./Find_Logger"
 import Images from "./Imageview"
 import Zns_layout from "./Zns";
 import Dashboard from "./Dashboard";
-
+import axios from "axios"
 
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -29,7 +29,6 @@ class App extends Component {
       collapsed: !this.state.collapsed,
     });
   };
-
   render() {
     return (
         <Layout style={{ minHeight: "100vh" }}>
