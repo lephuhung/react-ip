@@ -710,7 +710,7 @@ const Zns_layout = () => {
         setZns(result1.data);
         setZnsMessage(result2.data);
         localStorage.setItem("token-zl", token_res.data);
-        message.success("Đã cập nhật token mới");
+        // message.success("Đã cập nhật token mới");
       } catch (error) {
         console.log(error);
       } finally {
