@@ -13,6 +13,7 @@ import {
   Row,
   Select,
 } from "antd";
+import Image from "./image";
 import type { ColumnsType } from "antd/es/table";
 import axios from "axios";
 
@@ -563,7 +564,7 @@ const Zns_layout = () => {
       )
       .then((response) => {
         if (response.status === 200) {
-          setConfirmLoading(false);
+          // setConfirmLoading(false);
           message.info(`Đã cập nhật ZNS Message Thành công`);
         } else {
           message.error("Thêm thểt bị");
@@ -585,7 +586,7 @@ const Zns_layout = () => {
       if (data) {
         const deliveryTime = data.delivery_time;
         if (deliveryTime) {
-          setConfirmLoading(true);
+          // setConfirmLoading(true);
           message.success(`Tin nhắn đã đến lúc ${convertTime(deliveryTime)}`);
           UpdateZnsMessage(id, data.message, deliveryTime);
         } else {
@@ -627,7 +628,7 @@ const Zns_layout = () => {
       title: "Message ID",
       dataIndex: "message_id",
       key: "message_id",
-      render: (text) => <Tag color="processing">{text}</Tag>,
+      render: (text) => <Image name ={text} />,
     },
     {
       title: "Thông tin ZNS",

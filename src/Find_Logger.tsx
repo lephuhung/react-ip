@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import "./index.css";
 import { Space, Table, Button, Form, Input, Tag, message } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import axios from "axios";
 import Image from "./image";
 import { parse as parseIPv6, toLong, fromLong } from "ip6";
-// import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Scatter, Bar } from "react-chartjs-2";
+import bigInt from "big-integer";
 import {
   Chart as ChartJS,
   TimeScale,
@@ -15,7 +15,6 @@ import {
   Title,
   Tooltip,
   Legend,
-  ChartData
 } from "chart.js";
 import "chartjs-adapter-date-fns";
 import { CategoryScale, BarElement, ChartOptions } from "chart.js";
@@ -44,7 +43,7 @@ interface DataType {
   device: number;
   filename: string;
   time_stamp: string;
-  created_at: Date;
+  created_at: string;
 }
 function get4subv6(ipv6Address: string): string {
   const segments = ipv6Address.split(":");
@@ -63,11 +62,6 @@ const columns: ColumnsType<DataType> = [
     dataIndex: "ip",
     key: "ip",
     render: (text) => <Tag color="processing">{text}</Tag>,
-  },
-  {
-    title: "IP INFO",
-    dataIndex: "ip_info",
-    key: "ip_info",
   },
   {
     title: "Trình duyệt",
@@ -202,50 +196,165 @@ const Filter = () => {
             { type: "string", warningOnly: true },
             { type: "string", min: 6 },
           ]}
+          style={{
+            display: "inline-block",
+            width: "300px",
+            marginRight: "8px",
+          }}
         >
           <Input placeholder="input placeholder" style={{ width: "300px" }} />
         </Form.Item>
         <Form.Item
-          name="id"
-          label="ID"
-          rules={[
-            { type: "string", warningOnly: true },
-            { type: "string", max: 4 },
-          ]}
+          style={{ display: "inline-block", width: "calc(50% - 8px)" }}
         >
-          <Input placeholder="input placeholder" style={{ width: "300px" }} />
-        </Form.Item>
-        <Form.Item>
-          <Space>
-            <Button type="primary" htmlType="submit">
-              Tìm theo Token
-            </Button>
-            <Button htmlType="button" onClick={onFill}>
-              Tìm theo ID
-            </Button>
-          </Space>
+          <Button
+            type="primary"
+            htmlType="submit"
+            style={{ marginTop: "30px" }}
+          >
+            Tìm theo Token
+          </Button>
         </Form.Item>
       </Form>
-      {/* <Table
+      {datasource && <ScatterPlot data={datasource} />}
+      {datasource && <BarChart data={datasource} />}
+      <Table
         columns={columns}
         dataSource={datasource}
         pagination={{ pageSize: 30 }}
-      /> */}
-      {datasource && <IPBarChart data={datasource} />}
-      {datasource && <BarChart data={datasource} />}
+        style={{ marginTop: "20px" }}
+      />
     </div>
   );
 };
 export default Filter;
 
-interface IPData {
-  ip: string;
-  time: string;
-}
+const ScatterPlot: React.FC<ScatterPlotProps> = ({ data }) => {
+  const IPV4_DIVISOR = 10000;
+  const IPV6_DIVISOR = bigInt("10000000000000"); // Large divisor for IPv6
 
-interface Props {
-  data: DataType[];
-}
+  const ipToNumber = (ip: string) => {
+    if (ip.includes(":")) {
+      // IPv6
+      return ipv6ToNumber(ip).divide(IPV6_DIVISOR);
+    } else {
+      // IPv4
+      return ipv4ToNumber(ip) / IPV4_DIVISOR;
+    }
+  };
+
+  const ipv4ToNumber = (ip: string) => {
+    return ip
+      .split(".")
+      .reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0);
+  };
+
+  const ipv6ToNumber = (ip: string) => {
+    const parts = ip.split(":").slice(0, 4); // Take the first 4 subnets
+    let number = bigInt(0);
+    for (let i = 0; i < parts.length; i++) {
+      const part = parseInt(parts[i] || "0", 16);
+      number = number.shiftLeft(16).add(part);
+    }
+    return number;
+  };
+
+  const numberToIpv4 = (num: number) => {
+    num *= IPV4_DIVISOR; // Re-multiply to get the original number
+    return [
+      (num >>> 24) & 255,
+      (num >>> 16) & 255,
+      (num >>> 8) & 255,
+      num & 255,
+    ].join(".");
+  };
+
+  const numberToIpv6 = (num: any) => {
+    num = num.multiply(IPV6_DIVISOR); // Re-multiply to get the original number
+    const hexString = num.toString(16).padStart(16, "0");
+    return hexString.match(/.{1,4}/g)?.join(":") || "";
+  };
+
+  const numberToIp = (num: any) => {
+    if (typeof num === "bigint" || num instanceof bigInt) {
+      return numberToIpv6(num);
+    } else {
+      return numberToIpv4(num);
+    }
+  };
+
+  const convertToUTC7 = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const offset = 7 * 60; // UTC+7 in minutes
+    const utc7Date = new Date(date.getTime() + offset * 60000);
+    return utc7Date;
+  };
+
+  const scatterData = {
+    datasets: [
+      {
+        label: "IP Address vs Time Stamp",
+        data: data.map((entry) => ({
+          x: convertToUTC7(entry.created_at).getTime(),
+          y: ipToNumber(entry.ip),
+        })),
+        backgroundColor: "rgba(0, 123, 255, 0.5)", // Background color of the dataset
+        borderColor: "rgba(0, 123, 255, 1)", // Border color of the dataset
+        pointBackgroundColor: "rgba(255, 0, 0, 0.5)", // Background color of the points
+        pointBorderColor: "rgba(255, 0, 0, 1)",
+      },
+    ],
+  };
+
+  const options = {
+    scales: {
+      x: {
+        type: "time" as const,
+        time: {
+          unit: "hour" as const,
+          displayFormats: {
+            hour: "HH:mm", // 24-hour format
+          },
+        },
+        title: {
+          display: true,
+          text: "Time Stamp (UTC+7)",
+        },
+      },
+      y: {
+        title: {
+          display: true,
+          text: "IP Address",
+        },
+        ticks: {
+          callback: function (value: any) {
+            return numberToIp(value);
+          },
+        },
+      },
+    },
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: function (context: any) {
+            const ip = numberToIp(context.raw.y);
+            const time = new Date(context.raw.x).toLocaleString("en-US", {
+              timeZone: "Asia/Bangkok",
+            });
+            return `IP: ${ip}, Time: ${time}`;
+          },
+        },
+      },
+    },
+  };
+
+  return (
+    <div>
+      <h2>Scatter Plot of IP Address vs Time Stamp</h2>
+      <Scatter data={scatterData} options={options} />
+    </div>
+  );
+};
 
 const BarChart: React.FC<BarChartProps> = ({ data }) => {
   const subnetCounts = data.reduce<{ [key: string]: number }>((acc, item) => {
@@ -301,86 +410,5 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
         }}
       />
     </div>
-  );
-};
-const IPBarChart: React.FC<Props> = ({ data }) => {
-  const [chartData, setChartData] = useState<ChartData<'bar', { label: string; data: number[]; }[], unknown>>({
-      labels: [],
-      datasets: [
-          {
-              label: 'IP Frequency',
-              data: [],
-              backgroundColor: 'rgba(75, 192, 192, 0.2)',
-              borderColor: 'rgba(75, 192, 192, 1)',
-              borderWidth: 1,
-          },
-      ],
-  });
-
-  useEffect(() => {
-      // Count frequency of each IP
-      const ipFrequency = new Map<string, number>();
-      data.forEach(entry => {
-          const { ip, created_at } = entry;
-          const key = `${ip}_${created_at.toString().slice(0, 13)}`; // Using IP and hour as a key
-          ipFrequency.set(key, (ipFrequency.get(key) || 0) + 1);
-      });
-
-      // Prepare chart data
-      const labels: string[] = [];
-      const counts: number[] = [];
-      ipFrequency.forEach((count, key) => {
-          const [ip, time] = key.split('_');
-          labels.push(`${ip} - ${time}`);
-          counts.push(count);
-      });
-
-      setChartData({
-          labels: labels,
-          datasets: [
-              {
-                  label: 'IP Frequency',
-                  data: [{ label: 'label1', data: counts }],
-                  backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                  borderColor: 'rgba(75, 192, 192, 1)',
-                  borderWidth: 1,
-              },
-          ],
-      });
-  }, [data]);
-
-  return (
-      <div style={{ height: '400px', width: '600px', margin: 'auto' }}>
-          <h2>IP Frequency over Time</h2>
-          <Bar
-              data={{
-                  labels: chartData.labels,
-                  datasets: chartData.datasets.map(dataset => ({
-                      label: dataset.label,
-                      data: dataset.data,
-                      backgroundColor: dataset.backgroundColor,
-                      borderColor: dataset.borderColor,
-                      borderWidth: dataset.borderWidth,
-                  })),
-              }}
-              options={{
-                  scales: {
-                      x: {
-                          title: {
-                              display: true,
-                              text: 'IP - Time',
-                          },
-                      },
-                      y: {
-                          beginAtZero: true,
-                          title: {
-                              display: true,
-                              text: 'Frequency',
-                          },
-                      },
-                  },
-              }}
-          />
-      </div>
   );
 };
