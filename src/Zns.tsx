@@ -151,10 +151,10 @@ async function sendDiscord(
   phoneNumber: string,
   phone_user: string,
   time_send: string,
-  zns_id: string,
+  name: string,
   discord_url: string
 ) {
-  const info = `1. Đã gửi ZNS tới: ${phoneNumber} - Name: ${phone_user} - Lúc: ${time_send}\n2. Message ID: ${message_id} `;
+  const info = `1. Đã gửi ZNS tới: ${phoneNumber} - Name: ${name} - Lúc: ${time_send}\n2. Message ID: ${message_id} `;
 
   const embed = {
     username: `ZNS Logger - ${phone_user}`,
@@ -321,7 +321,8 @@ const Zns_layout = () => {
     accessToken: string,
     zns_id: string,
     phoneNumber: string,
-    phone_user: string
+    phone_user: string,
+    name:string
   ) {
     const url = "https://business.openapi.zalo.me/message/template";
     const headers = {
@@ -350,7 +351,7 @@ const Zns_layout = () => {
             phoneNumber,
             phone_user,
             convertTime(sent_time),
-            zns_id,
+            name,
             urlDiscord
           ));
       } else {
@@ -392,7 +393,7 @@ const Zns_layout = () => {
           let phoneValue = getPhoneUserValueById(datasource, PhoneId);
           phoneValue &&
             ZNS_ID &&
-            sendZns(zns_data, token, ZNS_ID, phoneNumberZns, phoneValue);
+            sendZns(zns_data, token, ZNS_ID, phoneNumberZns, phoneValue, values.name);
         }
       })
       .catch((info) => {
