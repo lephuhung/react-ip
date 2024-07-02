@@ -179,6 +179,7 @@ const Zns_layout = () => {
   const [formZns] = Form.useForm();
   const [formZnsMessage] = Form.useForm();
   const [messageId, setMessageId] = useState("");
+  const state = ["Chuẩn bị hàng", "Đang giao hàng", "Hoàn thành"];
 
   const showModal = () => {
     setIsModalOpen(true);
@@ -284,7 +285,6 @@ const Zns_layout = () => {
     const found = array.find((item) => item.id === id);
     return found ? found.zns_id : null;
   }
-  const state = ["Chuẩn bị hàng", "Đang giao hàng", "Hoàn thành"];
   function getRandomChar(): string {
     const characters: string = "0123456789";
     const randomIndex: number = Math.floor(Math.random() * characters.length);
@@ -628,7 +628,7 @@ const Zns_layout = () => {
       title: "Message ID",
       dataIndex: "message_id",
       key: "message_id",
-      render: (text) => <Image name ={text} />,
+      render: (text) => <Image name ={text.slice(0, 12)} />,
     },
     {
       title: "Thông tin ZNS",
