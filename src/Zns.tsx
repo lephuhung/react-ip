@@ -322,7 +322,7 @@ const Zns_layout = () => {
     zns_id: string,
     phoneNumber: string,
     phone_user: string,
-    name:string
+    name: string
   ) {
     const url = "https://business.openapi.zalo.me/message/template";
     const headers = {
@@ -338,9 +338,9 @@ const Zns_layout = () => {
     }
     try {
       const response = await axios.post(url, data, { headers });
-      let sent_time = response.data.data.sent_time;
-      let msg_id = response.data.data.msg_id;
-      if (sent_time && msg_id) {
+      try {
+        let sent_time = response.data.data.sent_time;
+        let msg_id = response.data.data.msg_id;
         message.success("Gửi tin ZNS thành công");
         await new Promise((resolve) => setTimeout(resolve, 5000));
         await checkStateMessageId(msg_id, sent_time);
@@ -354,8 +354,10 @@ const Zns_layout = () => {
             name,
             urlDiscord
           ));
-      } else {
-        message.error("Gửi tin ZNS thất bại");
+      } catch (error) {
+        message.error(`Gửi tin ZNS thất bại: ${response.data.message}`);
+        setConfirmLoading(false);
+        setIsModalOpenZnsMessage(false);
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -393,7 +395,14 @@ const Zns_layout = () => {
           let phoneValue = getPhoneUserValueById(datasource, PhoneId);
           phoneValue &&
             ZNS_ID &&
-            sendZns(zns_data, token, ZNS_ID, phoneNumberZns, phoneValue, values.name);
+            sendZns(
+              zns_data,
+              token,
+              ZNS_ID,
+              phoneNumberZns,
+              phoneValue,
+              values.name
+            );
         }
       })
       .catch((info) => {
@@ -629,7 +638,7 @@ const Zns_layout = () => {
       title: "Message ID",
       dataIndex: "message_id",
       key: "message_id",
-      render: (text) => <Image name ={text.slice(0, 12)} />,
+      render: (text) => <Image name={text.slice(0, 12)} />,
     },
     {
       title: "Thông tin ZNS",
@@ -706,7 +715,7 @@ const Zns_layout = () => {
           response1,
           response2,
           response3,
-          token_zl
+          token_zl,
         ]);
         setdata(result3.data);
         setZns(result1.data);
