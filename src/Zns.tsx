@@ -629,6 +629,12 @@ const Zns_layout = () => {
       render: (text) => <Tag color="processing">{text}</Tag>,
     },
     {
+      title: "Phone user",
+      dataIndex: "phone_user",
+      key: "phone_user",
+      render: (text) => <Tag color="success">{text}</Tag>,
+    },
+    {
       title: "Số điện thoại nhận ZNS",
       dataIndex: "phone",
       key: "phone",
