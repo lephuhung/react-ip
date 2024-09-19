@@ -155,7 +155,7 @@ const Filter = () => {
   const onFinish = (value: any) => {
     const token = localStorage.getItem("access_token");
     axios
-      .get(`https://z-image-cdn.com/logger/token/${value.key}`, {
+      .get(`https://z-image-cdn.com/logger/token/${value.key}?limit=300`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((response) => {

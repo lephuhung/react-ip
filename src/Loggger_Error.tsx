@@ -102,7 +102,7 @@ export const LoggerError = () => {
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     axios
-      .get("https://z-image-cdn.com/logger_error", {
+      .get("https://z-image-cdn.com/logger_error?limit=50", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((response) => {

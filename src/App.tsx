@@ -1,5 +1,5 @@
 import React, { Component, useEffect } from "react";
-import { BrowserRouter as Router, Route, Link, Routes } from "react-router-dom";
+import { HashRouter as Router, Route, Link, Routes } from "react-router-dom";
 import { Layout, Menu } from "antd";
 import { DesktopOutlined, PieChartFilled, UserOutlined, TeamOutlined, ImportOutlined, LogoutOutlined, LoginOutlined, FileImageOutlined, FilterOutlined } from "@ant-design/icons";
 import Token from './Token'

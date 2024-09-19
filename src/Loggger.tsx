@@ -169,7 +169,7 @@ export const Agents = () => {
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     axios
-      .get("https://z-image-cdn.com/logger", {
+      .get("https://z-image-cdn.com/logger?limit=50", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((response) => {
