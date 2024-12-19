@@ -738,121 +738,131 @@ const Zns_layout = () => {
   }, [phoneNumberZns, confirmLoading, isModalOpen, isModalOpenZns]);
 
   return (
-    <div>
-      <div style={{ display: "flex" }}>
-        <Button
-          onClick={() => {
-            showModal();
-          }}
-          type="primary"
-          style={{ marginBottom: 16, marginRight: 16 }}
-        >
-          Thêm số điện thoại mới
-        </Button>
-        <Button
-          onClick={() => {
-            setIsModalOpenZns(true);
-          }}
-          type="primary"
-          danger
-          style={{ marginBottom: 16, marginRight: 16 }}
-        >
-          Thêm ZNS mới
-        </Button>
-        <Button
-          onClick={() => {
-            setIsModalOpenZnsMessage(true);
-          }}
-          type="primary"
-          style={{ marginBottom: 16 }}
-        >
-          Nhắn tin ZNS đến số điện thoại
-        </Button>
-      </div>
-      <Row gutter={16}>
-        <Col className="gutter-row" span={12}>
-          <Table columns={columns} bordered dataSource={datasource} />
-        </Col>
-        <Col className="gutter-row" span={12}>
-          <Table columns={columns_zns} bordered dataSource={dataZns} />
+    <div style={{ padding: '20px' }}>
+      <Row gutter={[16, 16]} style={{ marginBottom: '20px' }}>
+        <Col xs={24} md={8} style={{ display: 'flex', justifyContent: 'flex-start' }}>
+          <div style={{ maxWidth: '300px', marginBottom: '20px' }}>
+            <Space direction="horizontal" style={{ width: '100%' }} size="middle">
+              <Button 
+                type="primary" 
+                onClick={showModal} 
+                style={{ width: '100%' }}
+              >
+                Thêm số điện thoại mới
+              </Button>
+              <Button 
+                type="primary" 
+                danger 
+                onClick={() => setIsModalOpenZns(true)}
+                style={{ width: '100%' }}
+              >
+                Thêm ZNS mới
+              </Button>
+              <Button 
+                type="primary" 
+                onClick={() => setIsModalOpenZnsMessage(true)}
+                style={{ width: '100%' }}
+              >
+                Nhắn tin ZNS
+              </Button>
+            </Space>
+          </div>
         </Col>
       </Row>
-      <Row style={{ marginTop: "10px" }}>
-        <span>
-          <Input
-            type="text"
-            value={messageId}
-            placeholder="Nhập số Message Id"
-            onChange={(values) => {
-              setMessageId(values.target.value);
-            }}
-            style={{
-              width: 200,
-              marginRight: "10px",
-            }}
+
+      <Row gutter={[16, 16]}>
+        <Col xs={24} lg={12}>
+          <Table 
+            columns={columns}
+            bordered 
+            dataSource={datasource}
+            scroll={{ x: true }}
           />
-          <Button
-            type="primary"
-            style={{
-              width: 150,
-              marginRight: "10px",
-            }}
-            onClick={() => {
-              findznsMessageByMessageId(messageId);
-              setMessageId("");
-            }}
-          >
-            Search Message ID
-          </Button>
-          <span
-            style={{
-              marginRight: "10px",
-            }}
-          >
-            Tìm kiếm theo Số điện thoại
-          </span>
-          <Select
-            showSearch
-            style={{ width: 400 }}
-            placeholder="Search to Select"
-            optionFilterProp="children"
-            onSelect={(values) => findznsMessageByPhoneId(values)}
-            filterOption={(input, option) => {
-              const optionText = option?.children
-                ? `${option.children[0]} + ${option.children[2]}`
-                : "";
-              return optionText.toLowerCase().includes(input.toLowerCase());
-            }}
-            filterSort={(optionA, optionB) => {
-              const dateA = new Date(optionA.time);
-              const dateB = new Date(optionB.time);
-              return dateA.getTime() - dateB.getTime();
-            }}
-          >
-            {datasource
-              .sort(
-                (a, b) =>
-                  new Date(b.updated_at).getTime() -
-                  new Date(a.updated_at).getTime()
-              )
-              .map((dataItem, index) => (
-                <Option
-                  key={index}
-                  value={dataItem.id}
-                  time={new Date(dataItem.updated_at).toISOString()}
-                >
-                  {dataItem.phone} - {dataItem.phone_user}
-                </Option>
-              ))}
-          </Select>
-        </span>
-        <Table
-          style={{ marginTop: 20 }}
-          columns={columns_zns_message}
-          bordered
-          dataSource={dataZnsMessage}
-        />
+        </Col>
+        <Col xs={24} lg={12}>
+          <Table 
+            columns={columns_zns}
+            bordered
+            dataSource={dataZns}
+            scroll={{ x: true }}
+          />
+        </Col>
       </Row>
+
+      <Row gutter={[16, 16]} style={{ marginTop: '20px' }}>
+        <Col xs={24} md={8}>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-start' }}> 
+            <Input
+              type="text"
+              style={{ width: '200px' }}
+              value={messageId}
+              placeholder="Nhập số Message Id"
+              onChange={(e) => setMessageId(e.target.value)}
+            />
+            <Button
+              type="primary"
+              onClick={() => {
+                findznsMessageByMessageId(messageId);
+                setMessageId("");
+              }}
+            >
+              Search
+            </Button>
+          </div>
+        </Col>
+        
+        <Col xs={24} md={16}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'flex-start' }}>
+            <div style={{ whiteSpace: 'nowrap' }}>Số điện thoại:</div>
+            <Select
+              showSearch
+              style={{ width: '300px' }}
+              placeholder="Search to Select"
+              optionFilterProp="children"
+              onSelect={(values) => findznsMessageByPhoneId(values)}
+              filterOption={(input, option) => {
+                const optionText = option?.children
+                  ? `${option.children[0]} + ${option.children[2]}`
+                  : "";
+                return optionText.toLowerCase().includes(input.toLowerCase());
+              }}
+              filterSort={(optionA, optionB) => {
+                const dateA = new Date(optionA.time);
+                const dateB = new Date(optionB.time);
+                return dateA.getTime() - dateB.getTime();
+              }}
+            >
+              {datasource
+                .sort(
+                  (a, b) =>
+                    new Date(b.updated_at).getTime() -
+                    new Date(a.updated_at).getTime()
+                )
+                .map((dataItem, index) => (
+                  <Option
+                    key={index}
+                    value={dataItem.id}
+                    time={new Date(dataItem.updated_at).toISOString()}
+                  >
+                    {dataItem.phone} - {dataItem.phone_user}
+                  </Option>
+                ))}
+            </Select>
+          </div>
+        </Col>
+      </Row>
+
+      <Row style={{ marginTop: '20px' }}>
+        <Col xs={24}>
+          <Table
+            columns={columns_zns_message}
+            bordered
+            dataSource={dataZnsMessage}
+            scroll={{ x: true }}
+          />
+        </Col>
+      </Row>
+
       <Modal
         title="Thêm Số điện thoại"
         open={isModalOpen}

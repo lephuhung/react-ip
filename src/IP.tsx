@@ -36,9 +36,26 @@ export const IP = () => {
     const showModal = () => {
         setIsModalOpen(true);
     };
-    const AutoIP = () => {
+    const AutoIPv6 = () => {
         const token = localStorage.getItem("token");
         axios.get(`https://z-image-cdn.com/local_ip?token=${token}`).then((response) => { 
+            if(response.status===200){
+                if (response.data.message){
+                    message.info("IP Exitst")
+                }else{
+                    message.success(`Đã thêm IP ${response.data.ip}`)
+                }
+            }else{
+                message.error("Có lỗi xảy ra");
+            }
+        }).catch((error) => { 
+
+        });
+
+    }
+    const AutoIPv4 = () => {
+        const token = localStorage.getItem("token");
+        axios.get(`https://c.z-image-cdn.com/local_ip?token=${token}`).then((response) => { 
             if(response.status===200){
                 if (response.data.message){
                     message.info("IP Exitst")
@@ -104,19 +121,21 @@ export const IP = () => {
             <Button onClick={() => { showModal() }} type="primary" style={{ marginBottom: 16, marginRight:16 }}>
                 Thêm IP bằng tay
             </Button>
-            <Button onClick={() => { AutoIP() }} type="primary" danger style={{ marginBottom: 16 }}>
-                Thêm IP tự động
+            <Button onClick={() => { AutoIPv6() }} type="primary" danger style={{ marginBottom: 16, marginRight:16 }}>
+                Thêm IP tự động v6
+            </Button>
+            <Button onClick={() => { AutoIPv4() }} type="primary" style={{ marginBottom: 16 }}>
+                Thêm IP tự động v4
             </Button>
             </div>
             <Table columns={columns} dataSource={datasource} />
-            <Modal title="Thêm Webhooks" open={isModalOpen} onCancel={handleCancel}>
+            <Modal title="Thêm Webhooks" open={isModalOpen} onCancel={handleCancel} onOk={handleOk}>
                 <Form
                     name="basic"
                     labelCol={{ span: 8 }}
                     wrapperCol={{ span: 16 }}
                     style={{ maxWidth: 600 }}
                     initialValues={{ remember: true }}
-                    onFinish={handleOk}
                     autoComplete="off"
                 >
                     <Form.Item
@@ -125,11 +144,6 @@ export const IP = () => {
                         rules={[{ required: true, message: "Please input your webhook name!" }]}
                     >
                         <Input />
-                    </Form.Item>
-                    <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
-                        <Button type="primary" htmlType="submit">
-                            Lưu
-                        </Button>
                     </Form.Item>
                 </Form>
             </Modal>
