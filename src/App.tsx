@@ -18,7 +18,7 @@ const { Header, Content, Footer, Sider } = Layout;
 
 class App extends Component {
   state = {
-    collapsed: false,
+    collapsed: true,
   };
 
   onCollapse = (collapsed: any) => {
@@ -122,7 +122,7 @@ class App extends Component {
               </Routes>
             </Content>
             <Footer style={{ textAlign: "center" }}>
-              Ant Design ©2024 Created by Ant UED
+              Ant Design ©2025 Created by Ant UED
             </Footer>
           </Layout>
         </Layout>

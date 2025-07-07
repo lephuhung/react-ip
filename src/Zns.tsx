@@ -99,6 +99,7 @@ const columns: ColumnsType<Phone> = [
     title: "ID",
     dataIndex: "id",
     key: "id",
+    responsive: ['lg'],
     render: (text) => <Space>{text}</Space>,
   },
   {
@@ -111,12 +112,14 @@ const columns: ColumnsType<Phone> = [
     title: "Thông tin user",
     dataIndex: "phone_user",
     key: "phone_user",
+    responsive: ['lg'],
     render: (text) => <Tag color="processing">{text}</Tag>,
   },
   {
     title: "Ngày tạo",
     key: "created_at",
     dataIndex: "created_at",
+    responsive: ['lg'],
     render: (text) => <Space>{formatDateTime(text)}</Space>,
   },
 ];
@@ -143,6 +146,7 @@ const columns_zns: ColumnsType<Zns> = [
     title: "Ngày tạo",
     key: "created_at",
     dataIndex: "created_at",
+    responsive: ['lg'],
     render: (text) => <Space>{formatDateTime(text)}</Space>,
   },
 ];
@@ -620,6 +624,7 @@ const Zns_layout = () => {
       title: "ID",
       dataIndex: "id",
       key: "id",
+      responsive: ['lg'],
       render: (text) => <Space>{text}</Space>,
     },
     {
@@ -638,12 +643,14 @@ const Zns_layout = () => {
       title: "Số điện thoại nhận ZNS",
       dataIndex: "phone",
       key: "phone",
+      responsive: ['lg'],
       render: (text) => <Tag color="processing">{text}</Tag>,
     },
     {
       title: "Message ID",
       dataIndex: "message_id",
       key: "message_id",
+      responsive: ['lg'],
       render: (text) => <Image name={text.slice(0, 12)} />,
     },
     {
@@ -674,12 +681,14 @@ const Zns_layout = () => {
       title: "Thời gian gửi ZNS",
       dataIndex: "time_send",
       key: "time_send",
+      responsive: ['lg'],
       render: (text) => <Tag color="processing">{convertTime(text)}</Tag>,
     },
     {
       title: "Ngày tạo",
       key: "created_at",
       dataIndex: "created_at",
+      responsive: ['lg'],
       render: (text) => <Space>{formatDateTime(text)}</Space>,
     },
     {
@@ -738,7 +747,7 @@ const Zns_layout = () => {
   }, [phoneNumberZns, confirmLoading, isModalOpen, isModalOpenZns]);
 
   return (
-    <div style={{ padding: '20px' }}>
+    <div>
       <Row gutter={[16, 16]} style={{ marginBottom: '20px' }}>
         <Col xs={24} md={8} style={{ display: 'flex', justifyContent: 'flex-start' }}>
           <div style={{ maxWidth: '300px', marginBottom: '20px' }}>
@@ -791,10 +800,14 @@ const Zns_layout = () => {
 
       <Row gutter={[16, 16]} style={{ marginTop: '20px' }}>
         <Col xs={24} md={8}>
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-start' }}> 
+          <div style={{ 
+            display: 'flex', 
+            gap: '10px',
+            marginBottom: '10px'
+          }}> 
             <Input
               type="text"
-              style={{ width: '200px' }}
+              style={{ width: '200px', flex: 1 }}
               value={messageId}
               placeholder="Nhập số Message Id"
               onChange={(e) => setMessageId(e.target.value)}
@@ -812,11 +825,17 @@ const Zns_layout = () => {
         </Col>
         
         <Col xs={24} md={16}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'flex-start' }}>
-            <div style={{ whiteSpace: 'nowrap' }}>Số điện thoại:</div>
+          <div style={{ 
+            display: 'flex', 
+            gap: '10px',
+            alignItems: 'center'
+          }}>
+            <span style={{ whiteSpace: 'nowrap', minWidth: 'fit-content' }}>
+              Số điện thoại:
+            </span>
             <Select
               showSearch
-              style={{ width: '300px' }}
+              style={{ width: '100%', maxWidth: '300px' }}
               placeholder="Search to Select"
               optionFilterProp="children"
               onSelect={(values) => findznsMessageByPhoneId(values)}

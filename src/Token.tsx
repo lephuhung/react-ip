@@ -34,45 +34,81 @@ type FieldType = {
 };
 
 const Token: React.FC = () => (
-
-    <Row>
-      <Col span={12} order={4}>
-        <Form
-          name="basic"
-          labelCol={{ span: 8 }}
-          wrapperCol={{ span: 16 }}
-          style={{ maxWidth: 600 }}
-          initialValues={{ remember: true }}
-          onFinish={onFinish}
-          onFinishFailed={onFinishFailed}
-          autoComplete="off"
+  <Row gutter={[16, 16]} style={{ margin: '20px' }}>
+    <Col 
+      xs={24} 
+      md={12}
+      style={{
+        marginBottom: '20px'
+      }}
+    >
+      <Form
+        name="basic"
+        labelCol={{ xs: { span: 24 }, sm: { span: 8 } }}
+        wrapperCol={{ xs: { span: 24 }, sm: { span: 16 } }}
+        style={{ 
+          maxWidth: '100%', 
+          padding: '16px',
+          background: '#fff',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}
+        initialValues={{ remember: true }}
+        onFinish={onFinish}
+        onFinishFailed={onFinishFailed}
+        autoComplete="off"
+      >
+        <Form.Item<FieldType>
+          label="Username"
+          name="username"
+          rules={[{ required: true, message: "Please input your username!" }]}
         >
-          <Form.Item<FieldType>
-            label="Username"
-            name="username"
-            rules={[{ required: true, message: "Please input your username!" }]}
+          <Input size="large" />
+        </Form.Item>
+        <Form.Item<FieldType>
+          label="Password"
+          name="password"
+          rules={[{ required: true, message: "Please input your password!" }]}
+        >
+          <Input.Password size="large" />
+        </Form.Item>
+        <Form.Item 
+          wrapperCol={{ 
+            xs: { span: 24, offset: 0 },
+            sm: { span: 16, offset: 8 }
+          }}
+          style={{ 
+            marginBottom: 0,
+            textAlign: 'center'
+          }}
+        >
+          <Button 
+            type="primary" 
+            htmlType="submit"
+            size="large"
+            style={{
+              width: '100%',
+              maxWidth: '200px'
+            }}
           >
-            <Input />
-          </Form.Item>
-          <Form.Item<FieldType>
-            label="Password"
-            name="password"
-            rules={[{ required: true, message: "Please input your password!" }]}
-          >
-            <Input.Password />
-          </Form.Item>
-          <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
-            <Button type="primary" htmlType="submit">
-              Submit
-            </Button>
-          </Form.Item>
-        </Form>
-      </Col>
-      <Col span={12} order={3}>
+            Submit
+          </Button>
+        </Form.Item>
+      </Form>
+    </Col>
+    <Col xs={24} md={12}>
+      <div style={{
+        background: '#fff',
+        padding: '16px',
+        borderRadius: '8px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+      }}>
         <App />
-      </Col>
-    </Row>
+      </div>
+    </Col>
+  </Row>
 );
+
 const App: React.FC = () => {
   const [form] = Form.useForm();
 
@@ -104,7 +140,7 @@ const App: React.FC = () => {
         label="Token String"
         rules={[{ required: true }, { type: 'string', warningOnly: true }, { type: 'string', min: 6 }]}
       >
-        <Input placeholder="input placeholder" />
+        <Input placeholder="input placeholder" style={{ width: '100%', maxWidth: '300px' }}/>
       </Form.Item>
       <Form.Item>
         <Space>
@@ -119,4 +155,5 @@ const App: React.FC = () => {
     </Form>
   );
 };
+
 export default Token;
