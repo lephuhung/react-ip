@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "./index.css";
-import { Space, Table, Button, Modal, Form, Tag, Input, message, Card } from "antd";
+import { Space, Table, Button, Modal, Form, Tag, Input, message, Card, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import axios from "./axiosInstance";
 interface DataType {
@@ -30,6 +30,32 @@ const columns: ColumnsType<DataType> = [
         render: (text) => <Space>{text}</Space>,
     },
 ];
+function expandIPv6(ip: string): string {
+  if (!ip.includes("::")) {
+    return ip;
+  }
+  const parts = ip.split("::");
+  const left = parts[0] ? parts[0].split(":") : [];
+  const right = parts[1] ? parts[1].split(":") : [];
+  const missingCount = 8 - (left.length + right.length);
+  const middle = Array(missingCount).fill("0");
+  return [...left, ...middle, ...right].join(":");
+}
+
+function get4subv6(ipv6Address: string): string {
+  const expanded = expandIPv6(ipv6Address.trim());
+  const segments = expanded.split(":");
+  return segments.slice(0, 4).join(":");
+}
+
+const formatIpForDisplay = (ip: string): string => {
+  if (ip && ip.includes(":")) {
+    const prefix = get4subv6(ip);
+    return prefix ? `${prefix}::/64` : ip;
+  }
+  return ip;
+};
+
 export const IP = () => {
     const [form] = Form.useForm();
     const [datasource, setdata] = useState<DataType[]>([]);
@@ -143,11 +169,30 @@ export const IP = () => {
                             style={{ marginBottom: '10px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}
                             bodyStyle={{ padding: '12px 16px' }}
                         >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                    <span style={{ color: '#8c8c8c', marginRight: '8px', fontSize: '13px' }}>#{item.id}</span>
-                                    <Tag color="processing">{item.ip || item.IP || ''}</Tag>
-                                </div>
+                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                 <div>
+                                     <span style={{ color: '#8c8c8c', marginRight: '8px', fontSize: '13px' }}>#{item.id}</span>
+                                     {
+                                         (() => {
+                                             const ipVal = item.ip || item.IP || '';
+                                             const displayIp = formatIpForDisplay(ipVal);
+                                             if (ipVal !== displayIp) {
+                                                 return (
+                                                     <Tooltip title={ipVal}>
+                                                         <Tag color="processing" style={{ cursor: "pointer", wordBreak: 'break-all', whiteSpace: 'normal' }}>
+                                                             {displayIp}
+                                                         </Tag>
+                                                     </Tooltip>
+                                                 );
+                                             }
+                                             return (
+                                                 <Tag color="processing" style={{ wordBreak: 'break-all', whiteSpace: 'normal' }}>
+                                                     {ipVal}
+                                                 </Tag>
+                                             );
+                                         })()
+                                     }
+                                 </div>
                                 <div style={{ fontSize: '12px', color: '#8c8c8c' }}>
                                     {item.created_at ? new Date(item.created_at).toLocaleString('vi-VN') : ''}
                                 </div>
