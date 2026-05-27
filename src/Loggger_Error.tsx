@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "./index.css";
-import { Space, Table, Button , Tag, message, Card } from "antd";
+import { Space, Table, Button , Tag, message, Card, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import axios from "./axiosInstance";
 import Image from "./image"
@@ -101,6 +101,32 @@ const convertTime = (value: string) => {
   const outputDate = `${day}/${month}/${year} - ${hours}:${minutes}:${seconds}`;
   return outputDate;
 }
+function expandIPv6(ip: string): string {
+  if (!ip.includes("::")) {
+    return ip;
+  }
+  const parts = ip.split("::");
+  const left = parts[0] ? parts[0].split(":") : [];
+  const right = parts[1] ? parts[1].split(":") : [];
+  const missingCount = 8 - (left.length + right.length);
+  const middle = Array(missingCount).fill("0");
+  return [...left, ...middle, ...right].join(":");
+}
+
+function get4subv6(ipv6Address: string): string {
+  const expanded = expandIPv6(ipv6Address.trim());
+  const segments = expanded.split(":");
+  return segments.slice(0, 4).join(":");
+}
+
+const formatIpForDisplay = (ip: string): string => {
+  if (ip && ip.includes(":")) {
+    const prefix = get4subv6(ip);
+    return prefix ? `${prefix}::/64` : ip;
+  }
+  return ip;
+};
+
 export const LoggerError = () => {
   const [datasource, setdata] = useState<DataType[]>([]);
   /* eslint-disable no-template-curly-in-string */
@@ -130,6 +156,7 @@ export const LoggerError = () => {
             } catch (e) {
               console.error("Failed to parse ip_info", e);
             }
+            const displayIp = formatIpForDisplay(item.ip);
             return (
               <Card
                 key={item.id}
@@ -139,7 +166,13 @@ export const LoggerError = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                   <div>
                     <span style={{ color: '#8c8c8c', marginRight: '6px', fontSize: '12px' }}>#{item.id}</span>
-                    <Tag color="processing">{item.ip}</Tag>
+                    {item.ip !== displayIp ? (
+                      <Tooltip title={item.ip}>
+                        <Tag color="processing" style={{ cursor: "pointer" }}>{displayIp}</Tag>
+                      </Tooltip>
+                    ) : (
+                      <Tag color="processing">{item.ip}</Tag>
+                    )}
                   </div>
                   <Image name={item.token ? item.token.replace('token', '') : ''} />
                 </div>
