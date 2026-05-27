@@ -1,6 +1,6 @@
 import React from "react";
 import { Button, Form, Input, Space, message, Row, Col } from "antd";
-import axios from "axios";
+import axios from "./axiosInstance";
 
 const onFinish = (values: any) => {
   axios
@@ -9,18 +9,17 @@ const onFinish = (values: any) => {
       values,
       {
         headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers":
-            "Access-Control-Allow-Headers, Content-Type, Authorization",
-          "Access-Control-Allow-Methods": "*",
           "Content-Type": "application/x-www-form-urlencoded",
         },
       }
     )
     .then((res) => {
       localStorage.setItem("access_token", res.data.access_token);
+      message.success("Đăng nhập thành công!");
     })
-    .catch(() => { });
+    .catch(() => {
+      message.error("Đăng nhập thất bại!");
+    });
   console.log("Success:", values);
 };
 
@@ -103,17 +102,17 @@ const Token: React.FC = () => (
         borderRadius: '8px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
       }}>
-        <App />
+        <ManualTokenForm />
       </div>
     </Col>
   </Row>
 );
 
-const App: React.FC = () => {
+const ManualTokenForm: React.FC = () => {
   const [form] = Form.useForm();
 
   const onFinish = (value: any) => {
-    localStorage.setItem("token", value.token)
+    localStorage.setItem("token", value.token);
     message.success('Submit success!');
   };
 

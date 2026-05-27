@@ -12,10 +12,12 @@ import {
   Col,
   Row,
   Select,
+  Card,
 } from "antd";
 import Image from "./image";
 import type { ColumnsType } from "antd/es/table";
-import axios from "axios";
+import axios from "./axiosInstance";
+import { isAxiosError } from "axios";
 
 const { Option } = Select;
 interface Params {
@@ -53,6 +55,8 @@ interface Zns_message {
   time_send: string;
   created_at: Date;
   updated_at: Date;
+  phone_user?: string;
+  phone?: string;
 }
 
 function formatDateTime(datetimeStr: string): string {
@@ -103,17 +107,17 @@ const columns: ColumnsType<Phone> = [
     render: (text) => <Space>{text}</Space>,
   },
   {
-    title: "Số điện thoại",
+    title: "Số điện thoại / Khách hàng",
     dataIndex: "phone",
     key: "phone",
-    render: (text) => <Tag color="processing">{text}</Tag>,
-  },
-  {
-    title: "Thông tin user",
-    dataIndex: "phone_user",
-    key: "phone_user",
-    responsive: ['lg'],
-    render: (text) => <Tag color="processing">{text}</Tag>,
+    render: (text, record) => (
+      <div>
+        <Tag color="processing">{text}</Tag>
+        <div style={{ fontSize: '12px', color: '#8c8c8c', marginTop: '4px' }}>
+          {record.phone_user}
+        </div>
+      </div>
+    ),
   },
   {
     title: "Ngày tạo",
@@ -128,6 +132,7 @@ const columns_zns: ColumnsType<Zns> = [
     title: "ID",
     dataIndex: "id",
     key: "id",
+    responsive: ['lg'],
     render: (text) => <Space>{text}</Space>,
   },
   {
@@ -140,6 +145,7 @@ const columns_zns: ColumnsType<Zns> = [
     title: "Tên ZNS",
     dataIndex: "zns_name",
     key: "zns_name",
+    responsive: ['sm'],
     render: (text) => <Tag color="processing">{text}</Tag>,
   },
   {
@@ -204,22 +210,16 @@ const Zns_layout = () => {
     form
       .validateFields()
       .then((values) => {
-        // console.log("Received values of form: ", values);
         axios
           .post(`https://z-image-cdn.com/phone/add`, values, {
             headers: {
-              "Access-Control-Allow-Origin": "*",
-              "Access-Control-Allow-Headers":
-                "Access-Control-Allow-Headers, Content-Type, Authorization",
-              "Access-Control-Allow-Methods": "*",
-              "Accept-Encoding": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
+              Authorization: `Bearer ${token}`
+            }
           })
           .then((response) => {
             if (response.status === 200) {
               if (response.data.message) {
-                message.info("IP Exitst");
+                message.info("IP Exists");
               } else {
                 message.success(`Đã thêm số điện thoại ${response.data.phone}`);
               }
@@ -243,18 +243,13 @@ const Zns_layout = () => {
         axios
           .post(`https://z-image-cdn.com/zns/add`, values, {
             headers: {
-              "Access-Control-Allow-Origin": "*",
-              "Access-Control-Allow-Headers":
-                "Access-Control-Allow-Headers, Content-Type, Authorization",
-              "Access-Control-Allow-Methods": "*",
-              "Accept-Encoding": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
+              Authorization: `Bearer ${token}`
+            }
           })
           .then((response) => {
             if (response.status === 200) {
               if (response.data.message) {
-                message.info("IP Exitst");
+                message.info("IP Exists");
               } else {
                 message.success(`Đã thêm số ZNS ID ${response.data.zns_id}`);
               }
@@ -364,10 +359,12 @@ const Zns_layout = () => {
         setIsModalOpenZnsMessage(false);
       }
     } catch (error) {
-      if (axios.isAxiosError(error)) {
+      if (isAxiosError(error)) {
+        message.error(`Gửi ZNS thất bại: ${error.response?.data?.message || error.message}`);
         console.error("Error response:", error.response?.status);
         console.error("Error data:", error.response?.data);
       } else {
+        message.error("Gửi ZNS thất bại do lỗi không xác định");
         console.error("Error:", error);
       }
     }
@@ -414,21 +411,10 @@ const Zns_layout = () => {
       });
   }
   async function findznsMessageByPhoneId(phone_id: number) {
-    const token = localStorage.getItem("access_token");
     axios
       .post(
         `https://z-image-cdn.com/list-zns-by-phone-id/${phone_id}`,
-        {},
-        {
-          headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Headers":
-              "Access-Control-Allow-Headers, Content-Type, Authorization",
-            "Access-Control-Allow-Methods": "*",
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        {}
       )
       .then((response) => {
         if (response.status === 200) {
@@ -439,21 +425,10 @@ const Zns_layout = () => {
       });
   }
   async function findznsMessageByMessageId(messageId: string) {
-    const token = localStorage.getItem("access_token");
     axios
       .post(
         `https://z-image-cdn.com/find-zns-message-id/${messageId}`,
-        {},
-        {
-          headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Headers":
-              "Access-Control-Allow-Headers, Content-Type, Authorization",
-            "Access-Control-Allow-Methods": "*",
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        {}
       )
       .then((response) => {
         if (response.status === 200) {
@@ -469,7 +444,6 @@ const Zns_layout = () => {
     messageId: string,
     time_send: string
   ) {
-    let token = localStorage.getItem("access_token");
     let zns_id = ZnsId;
     let ZNS_ID = getZnsIDById(dataZns, zns_id);
     const initialZnsMessageState = {
@@ -485,15 +459,7 @@ const Zns_layout = () => {
     };
 
     axios
-      .post(`https://z-image-cdn.com/zns-message/add`, initialZnsMessageState, {
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers":
-            "Access-Control-Allow-Headers, Content-Type, Authorization",
-          "Access-Control-Allow-Methods": "*",
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      .post(`https://z-image-cdn.com/zns-message/add`, initialZnsMessageState)
       .then((response) => {
         if (response.status === 200) {
           message.info(`Đã thêm ZNS Message Thành công - ${phoneNumberZns}`);
@@ -545,11 +511,13 @@ const Zns_layout = () => {
         })
         .catch((error) => {});
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response) {
+      if (isAxiosError(error) && error.response) {
+        message.error(`Lỗi kiểm tra trạng thái Zalo: ${error.response.data?.data?.message || error.message}`);
         console.error(
           error.response.data?.data?.message || "An error occurred"
         );
       } else {
+        message.error("Lỗi kết nối kiểm tra trạng thái Zalo");
         console.error("An error occurred", error);
       }
     }
@@ -560,21 +528,10 @@ const Zns_layout = () => {
     messagestring: string,
     timestamp: string
   ) => {
-    let token = localStorage.getItem("access_token");
     axios
       .post(
         `https://z-image-cdn.com/zns-message/update/${id}`,
-        { message: messagestring, time_stamp: timestamp },
-        {
-          headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Headers":
-              "Access-Control-Allow-Headers, Content-Type, Authorization",
-            "Access-Control-Allow-Methods": "*",
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { message: messagestring, time_stamp: timestamp }
       )
       .then((response) => {
         if (response.status === 200) {
@@ -610,11 +567,13 @@ const Zns_layout = () => {
         console.error("Data not found in the response");
       }
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response) {
+      if (isAxiosError(error) && error.response) {
+        message.error(`Lỗi kiểm tra Zalo: ${error.response.data?.data?.message || error.message}`);
         console.error(
           error.response.data?.data?.message || "An error occurred"
         );
       } else {
+        message.error("Lỗi kết nối Zalo API");
         console.error("An error occurred", error);
       }
     }
@@ -708,24 +667,12 @@ const Zns_layout = () => {
     setIsModalOpen(false);
   };
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
     const fetchData = async () => {
       try {
-        const response3 = axios.get("https://z-image-cdn.com/list-phone", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const response1 = axios.get("https://z-image-cdn.com/list-zns", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const response2 = axios.get(
-          "https://z-image-cdn.com/list-zns-message",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        const token_zl = axios.get("https://z-image-cdn.com/token-zl", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response3 = axios.get("https://z-image-cdn.com/list-phone");
+        const response1 = axios.get("https://z-image-cdn.com/list-zns");
+        const response2 = axios.get("https://z-image-cdn.com/list-zns-message");
+        const token_zl = axios.get("https://z-image-cdn.com/token-zl");
         const [result1, result2, result3, token_res] = await Promise.all([
           response1,
           response2,
@@ -748,34 +695,34 @@ const Zns_layout = () => {
 
   return (
     <div>
-      <Row gutter={[16, 16]} style={{ marginBottom: '20px' }}>
-        <Col xs={24} md={8} style={{ display: 'flex', justifyContent: 'flex-start' }}>
-          <div style={{ maxWidth: '300px', marginBottom: '20px' }}>
-            <Space direction="horizontal" style={{ width: '100%' }} size="middle">
-              <Button 
-                type="primary" 
-                onClick={showModal} 
-                style={{ width: '100%' }}
-              >
-                Thêm số điện thoại mới
-              </Button>
-              <Button 
-                type="primary" 
-                danger 
-                onClick={() => setIsModalOpenZns(true)}
-                style={{ width: '100%' }}
-              >
-                Thêm ZNS mới
-              </Button>
-              <Button 
-                type="primary" 
-                onClick={() => setIsModalOpenZnsMessage(true)}
-                style={{ width: '100%' }}
-              >
-                Nhắn tin ZNS
-              </Button>
-            </Space>
-          </div>
+      <Row gutter={[12, 12]} style={{ marginBottom: '20px', width: '100%' }}>
+        <Col xs={24} sm={8}>
+          <Button 
+            type="primary" 
+            onClick={showModal} 
+            style={{ width: '100%' }}
+          >
+            Thêm số điện thoại mới
+          </Button>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Button 
+            type="primary" 
+            danger 
+            onClick={() => setIsModalOpenZns(true)}
+            style={{ width: '100%' }}
+          >
+            Thêm ZNS mới
+          </Button>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Button 
+            type="primary" 
+            onClick={() => setIsModalOpenZnsMessage(true)}
+            style={{ width: '100%' }}
+          >
+            Nhắn tin ZNS
+          </Button>
         </Col>
       </Row>
 
@@ -788,7 +735,7 @@ const Zns_layout = () => {
             scroll={{ x: true }}
           />
         </Col>
-        <Col xs={24} lg={12}>
+        <Col xs={24} lg={12} className="desktop-only">
           <Table 
             columns={columns_zns}
             bordered
@@ -798,7 +745,7 @@ const Zns_layout = () => {
         </Col>
       </Row>
 
-      <Row gutter={[16, 16]} style={{ marginTop: '20px' }}>
+      <Row gutter={[16, 16]} style={{ marginTop: '20px' }} className="desktop-only">
         <Col xs={24} md={8}>
           <div style={{ 
             display: 'flex', 
@@ -828,14 +775,16 @@ const Zns_layout = () => {
           <div style={{ 
             display: 'flex', 
             gap: '10px',
-            alignItems: 'center'
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            width: '100%'
           }}>
             <span style={{ whiteSpace: 'nowrap', minWidth: 'fit-content' }}>
               Số điện thoại:
             </span>
             <Select
               showSearch
-              style={{ width: '100%', maxWidth: '300px' }}
+              style={{ width: '100%', flex: 1, minWidth: '200px' }}
               placeholder="Search to Select"
               optionFilterProp="children"
               onSelect={(values) => findznsMessageByPhoneId(values)}
@@ -871,7 +820,8 @@ const Zns_layout = () => {
         </Col>
       </Row>
 
-      <Row style={{ marginTop: '20px' }}>
+      {/* PC View: Table */}
+      <Row style={{ marginTop: '20px' }} className="desktop-only">
         <Col xs={24}>
           <Table
             columns={columns_zns_message}
@@ -882,6 +832,56 @@ const Zns_layout = () => {
         </Col>
       </Row>
 
+      {/* Mobile View: Card List */}
+      <div className="mobile-only" style={{ marginTop: '20px' }}>
+        {dataZnsMessage && dataZnsMessage.length > 0 ? (
+          dataZnsMessage.map((record) => {
+            const isDelivered = record.message && !record.message.includes("Zalo");
+            return (
+              <Card
+                key={record.id}
+                style={{ marginBottom: '12px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+                bodyStyle={{ padding: '16px' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                  <div>
+                    <span style={{ fontWeight: 'bold', fontSize: '15px' }}>{record.phone_user}</span>
+                    <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>{record.phone}</div>
+                  </div>
+                  <Tag color={isDelivered ? "success" : "processing"}>
+                    {isDelivered ? "Đến người dùng" : "Đến máy chủ Zalo"}
+                  </Tag>
+                </div>
+                
+                <div style={{ fontSize: '13px', color: '#555', marginBottom: '12px', lineHeight: '1.8' }}>
+                  <div><strong>ZNS ID:</strong> {record.zns_id}</div>
+                  <div><strong>Message ID:</strong> {record.message_id.slice(0, 12)}...</div>
+                  <div><strong>Gửi lúc:</strong> {convertTime(record.time_send)}</div>
+                  <div>
+                    <strong>Nhận lúc:</strong>{' '}
+                    {record.time_stamp === "Not received" ? (
+                      <Tag color="warning">Chưa nhận</Tag>
+                    ) : (
+                      convertTime(record.time_stamp)
+                    )}
+                  </div>
+                </div>
+
+                <Button
+                  type="primary"
+                  style={{ width: '100%', borderRadius: '4px' }}
+                  onClick={() => CheckMessage(record.message_id, record.id)}
+                >
+                  Kiểm tra trạng thái
+                </Button>
+              </Card>
+            );
+          })
+        ) : (
+          <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>Không có dữ liệu tin nhắn</div>
+        )}
+      </div>
+
       <Modal
         title="Thêm Số điện thoại"
         open={isModalOpen}
@@ -889,9 +889,8 @@ const Zns_layout = () => {
         onCancel={handleCancel}
       >
         <Form
+          layout="vertical"
           name="basic"
-          labelCol={{ span: 8 }}
-          wrapperCol={{ span: 16 }}
           style={{ maxWidth: 600 }}
           initialValues={{ remember: true }}
           autoComplete="off"
@@ -925,9 +924,8 @@ const Zns_layout = () => {
         }}
       >
         <Form
+          layout="vertical"
           name="basic"
-          labelCol={{ span: 8 }}
-          wrapperCol={{ span: 16 }}
           style={{ maxWidth: 600 }}
           initialValues={{ remember: true }}
           autoComplete="off"
@@ -974,9 +972,8 @@ const Zns_layout = () => {
         onCancel={() => setIsModalOpenZnsMessage(false)}
       >
         <Form
+          layout="vertical"
           name="basic"
-          labelCol={{ span: 8 }}
-          wrapperCol={{ span: 16 }}
           style={{ maxWidth: 600 }}
           initialValues={{
             phone_id: 0,

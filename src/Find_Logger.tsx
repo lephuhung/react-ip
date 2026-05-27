@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import "./index.css";
-import { Space, Table, Button, Form, Input, Tag, message } from "antd";
+import { Space, Table, Button, Form, Input, Tag, message, Tooltip as AntdTooltip, Card } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import axios from "axios";
+import axios from "./axiosInstance";
 import Image from "./image";
-import { parse as parseIPv6, toLong, fromLong } from "ip6";
 import { Scatter, Bar } from "react-chartjs-2";
 import bigInt from "big-integer";
 import {
@@ -45,11 +44,31 @@ interface DataType {
   time_stamp: string;
   created_at: string;
 }
-function get4subv6(ipv6Address: string): string {
-  const segments = ipv6Address.split(":");
-  const subnetPrefix = segments.slice(0, 4).join(":");
-  return subnetPrefix;
+function expandIPv6(ip: string): string {
+  if (!ip.includes("::")) {
+    return ip;
+  }
+  const parts = ip.split("::");
+  const left = parts[0] ? parts[0].split(":") : [];
+  const right = parts[1] ? parts[1].split(":") : [];
+  const missingCount = 8 - (left.length + right.length);
+  const middle = Array(missingCount).fill("0");
+  return [...left, ...middle, ...right].join(":");
 }
+
+function get4subv6(ipv6Address: string): string {
+  const expanded = expandIPv6(ipv6Address.trim());
+  const segments = expanded.split(":");
+  return segments.slice(0, 4).join(":");
+}
+
+const formatIpForDisplay = (ip: string): string => {
+  if (ip && ip.includes(":")) {
+    const prefix = get4subv6(ip);
+    return prefix ? `${prefix}::/64` : ip;
+  }
+  return ip;
+};
 const columns: ColumnsType<DataType> = [
   {
     title: "STT",
@@ -61,7 +80,17 @@ const columns: ColumnsType<DataType> = [
     title: "Tên",
     dataIndex: "ip",
     key: "ip",
-    render: (text) => <Tag color="processing">{text}</Tag>,
+    render: (text) => {
+      const displayIp = formatIpForDisplay(text);
+      if (text !== displayIp) {
+        return (
+          <AntdTooltip title={text}>
+            <Tag color="processing" style={{ cursor: "pointer" }}>{displayIp}</Tag>
+          </AntdTooltip>
+        );
+      }
+      return <Tag color="processing">{text}</Tag>;
+    },
   },
   {
     title: "Trình duyệt",
@@ -153,11 +182,8 @@ const Filter = () => {
   const [form] = Form.useForm();
 
   const onFinish = (value: any) => {
-    const token = localStorage.getItem("access_token");
     axios
-      .get(`https://z-image-cdn.com/logger/token/${value.key}?limit=300`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      .get(`https://z-image-cdn.com/logger/token/${value.key}?limit=300`)
       .then((response) => {
         setdata(response.data);
       })
@@ -168,17 +194,6 @@ const Filter = () => {
     message.error("Submit failed!");
   };
 
-  const onFill = () => {
-    let id = form.getFieldValue("id");
-    const token = localStorage.getItem("token");
-    axios
-      .get(`https://z-image-cdn.com/logger/${id}?token=${token}`)
-      .then((response) => {
-        console.log(response.data);
-        setdata(response.data);
-      })
-      .catch((error) => {});
-  };
   return (
     <div>
       <Form
@@ -218,130 +233,178 @@ const Filter = () => {
       </Form>
       {datasource && <ScatterPlot data={datasource} />}
       {datasource && <BarChart data={datasource} />}
-      <Table
-        columns={columns}
-        dataSource={datasource}
-        pagination={{ pageSize: 30 }}
-        style={{ marginTop: "20px" }}
-      />
+      {/* PC View */}
+      <div className="desktop-only">
+        <Table
+          columns={columns}
+          dataSource={datasource}
+          pagination={{ pageSize: 30 }}
+          style={{ marginTop: "20px" }}
+        />
+      </div>
+
+      {/* Mobile View */}
+      <div className="mobile-only" style={{ marginTop: "20px" }}>
+        {datasource && datasource.length > 0 ? (
+          datasource.map((item) => {
+            let ip_info: any = {};
+            try {
+              ip_info = JSON.parse(
+                item.ip_info
+                  .replace(/'/g, '"')
+                  .replace(/False/g, "false")
+                  .replace(/True/g, "true")
+              );
+            } catch (e) {
+              console.error("Failed to parse ip_info", e);
+            }
+            const displayIp = formatIpForDisplay(item.ip);
+            return (
+              <Card
+                key={item.id}
+                style={{ marginBottom: "12px", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}
+                bodyStyle={{ padding: "16px" }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "10px" }}>
+                  <div>
+                    <span style={{ color: "#8c8c8c", marginRight: "6px", fontSize: "12px" }}>#{item.id}</span>
+                    {item.ip !== displayIp ? (
+                      <AntdTooltip title={item.ip}>
+                        <Tag color="processing" style={{ cursor: "pointer" }}>{displayIp}</Tag>
+                      </AntdTooltip>
+                    ) : (
+                      <Tag color="processing">{item.ip}</Tag>
+                    )}
+                  </div>
+                  <Image name={item.token} />
+                </div>
+                <div style={{ fontSize: "13px", color: "#555", marginBottom: "12px", lineHeight: "1.6" }}>
+                  <div><strong>Khu vực:</strong> {ip_info["city"] || ""} - {ip_info["regionName"] || ""} - {ip_info["country"] || ""}</div>
+                  <div><strong>ISP:</strong> {ip_info["isp"] || ""}</div>
+                  <div><strong>Thiết bị:</strong> {item.device} (UA: {item.user_agents})</div>
+                  <div><strong>File Name:</strong> {item.filename}</div>
+                  <div><strong>Lúc:</strong> {item.time_stamp}</div>
+                </div>
+                <Button
+                  type="primary"
+                  style={{ width: "100%", borderRadius: "4px" }}
+                  onClick={() => {
+                    let info = `1. IP: ${item.ip} - Time: ${convertTime(
+                      item.time_stamp
+                    )} \n2. Khu vực: ${ip_info["city"]} - ${ip_info["regionName"]} - ${
+                      ip_info["country"]
+                    }\n3. Thông tin thiết bị: user_agent:${item.user_agents} - device: ${
+                      item.device
+                    }\n4. Nhà cung cấp dịch vụ: ${ip_info["isp"]}\n5. Di động: ${
+                      ip_info["mobile"]
+                    }, Proxy: ${ip_info["proxy"]}, Hosting: ${ip_info["hosting"]}\n`;
+                    try {
+                      navigator.clipboard.writeText(info);
+                      message.success("Đã copy kết quả");
+                    } catch (error) {
+                      console.warn("Copy failed", error);
+                      message.error("Không thể copy kết quả");
+                    }
+                  }}
+                >
+                  Copy thông tin log
+                </Button>
+              </Card>
+            );
+          })
+        ) : (
+          <div style={{ textAlign: "center", padding: "20px", color: "#999" }}>Không có dữ liệu Logger</div>
+        )}
+      </div>
     </div>
   );
 };
 export default Filter;
 
 const ScatterPlot: React.FC<ScatterPlotProps> = ({ data }) => {
-  const IPV4_DIVISOR = 10000;
-  const IPV6_DIVISOR = bigInt("10000000000000"); // Large divisor for IPv6
-
-  const ipToNumber = (ip: string) => {
-    if (ip.includes(":")) {
-      // IPv6
-      return ipv6ToNumber(ip).divide(IPV6_DIVISOR);
-    } else {
-      // IPv4
-      return ipv4ToNumber(ip) / IPV4_DIVISOR;
-    }
-  };
-
-  const ipv4ToNumber = (ip: string) => {
-    return ip
-      .split(".")
-      .reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0);
-  };
-
-  const ipv6ToNumber = (ip: string) => {
-    const parts = ip.split(":").slice(0, 4); // Take the first 4 subnets
-    let number = bigInt(0);
-    for (let i = 0; i < parts.length; i++) {
-      const part = parseInt(parts[i] || "0", 16);
-      number = number.shiftLeft(16).add(part);
-    }
-    return number;
-  };
-
-  const numberToIpv4 = (num: number) => {
-    num *= IPV4_DIVISOR; // Re-multiply to get the original number
-    return [
-      (num >>> 24) & 255,
-      (num >>> 16) & 255,
-      (num >>> 8) & 255,
-      num & 255,
-    ].join(".");
-  };
-
-  const numberToIpv6 = (num: any) => {
-    num = num.multiply(IPV6_DIVISOR); // Re-multiply to get the original number
-    const hexString = num.toString(16).padStart(16, "0");
-    return hexString.match(/.{1,4}/g)?.join(":") || "";
-  };
-
-  const numberToIp = (num: any) => {
-    if (typeof num === "bigint" || num instanceof bigInt) {
-      return numberToIpv6(num);
-    } else {
-      return numberToIpv4(num);
-    }
-  };
-
-  const convertToUTC7 = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const offset = 7 * 60; // UTC+7 in minutes
-    const utc7Date = new Date(date.getTime() + offset * 60000);
-    return utc7Date;
-  };
+  // Format and extract unique IP addresses (grouped IPv6) as Y-axis labels.
+  const uniqueIPs = Array.from(new Set(data.map((entry) => formatIpForDisplay(entry.ip)))).sort();
 
   const scatterData = {
     datasets: [
       {
-        label: "IP Address vs Time Stamp",
+        label: "IP Request Timeline",
         data: data.map((entry) => ({
-          x: convertToUTC7(entry.created_at).getTime(),
-          y: ipToNumber(entry.ip),
+          x: new Date(entry.time_stamp || entry.created_at).getTime(),
+          y: formatIpForDisplay(entry.ip), // Direct string mapping to the category labels
         })),
-        backgroundColor: "rgba(0, 123, 255, 0.5)", // Background color of the dataset
-        borderColor: "rgba(0, 123, 255, 1)", // Border color of the dataset
-        pointBackgroundColor: "rgba(255, 0, 0, 0.5)", // Background color of the points
-        pointBorderColor: "rgba(255, 0, 0, 1)",
+        backgroundColor: "rgba(99, 102, 241, 0.6)", // Modern Indigo
+        borderColor: "rgba(99, 102, 241, 1)",
+        pointBackgroundColor: "rgba(99, 102, 241, 0.8)",
+        pointBorderColor: "#fff",
+        pointBorderWidth: 1,
+        pointRadius: 6,
+        pointHoverRadius: 8,
       },
     ],
   };
 
   const options = {
+    responsive: true,
     scales: {
       x: {
         type: "time" as const,
         time: {
-          unit: "hour" as const,
+          unit: "minute" as const,
+          tooltipFormat: "dd/MM/yyyy HH:mm:ss",
           displayFormats: {
-            hour: "HH:mm", // 24-hour format
+            minute: "HH:mm",
+            hour: "HH:mm",
+            day: "dd/MM",
           },
         },
         title: {
           display: true,
-          text: "Time Stamp (UTC+7)",
+          text: "Thời gian (UTC+7)",
+          font: {
+            size: 13,
+            weight: "bold" as const,
+          },
+        },
+        grid: {
+          color: "rgba(0, 0, 0, 0.05)",
         },
       },
       y: {
+        type: "category" as const,
+        labels: uniqueIPs,
         title: {
           display: true,
-          text: "IP Address",
+          text: "Địa chỉ IP",
+          font: {
+            size: 13,
+            weight: "bold" as const,
+          },
+        },
+        grid: {
+          color: "rgba(0, 0, 0, 0.05)",
         },
         ticks: {
-          callback: function (value: any) {
-            return numberToIp(value);
+          autoSkip: false, // Ensure all IPs are labeled
+          font: {
+            family: "monospace",
+            size: 11,
           },
         },
       },
     },
     plugins: {
+      legend: {
+        display: false,
+      },
       tooltip: {
         callbacks: {
           label: function (context: any) {
-            const ip = numberToIp(context.raw.y);
-            const time = new Date(context.raw.x).toLocaleString("en-US", {
+            const ip = context.raw.y;
+            const time = new Date(context.raw.x).toLocaleString("vi-VN", {
               timeZone: "Asia/Bangkok",
             });
-            return `IP: ${ip}, Time: ${time}`;
+            return `IP: ${ip} | Lúc: ${time}`;
           },
         },
       },
@@ -349,8 +412,16 @@ const ScatterPlot: React.FC<ScatterPlotProps> = ({ data }) => {
   };
 
   return (
-    <div>
-      <h2>Scatter Plot of IP Address vs Time Stamp</h2>
+    <div style={{
+      background: "#fff",
+      padding: "20px",
+      borderRadius: "12px",
+      boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
+      marginBottom: "24px"
+    }}>
+      <h3 style={{ marginBottom: "16px", color: "#1f2937", fontWeight: 600 }}>
+        Phân bố truy cập IP theo Thời gian (Timeline)
+      </h3>
       <Scatter data={scatterData} options={options} />
     </div>
   );
@@ -361,10 +432,17 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
     let subnet: string;
 
     if (item.ip.includes(":")) {
-      const subnets = get4subv6(item.ip);
-      subnet = subnets; // Use the first subnet for simplicity
+      // IPv6: Group by /64 prefix
+      const prefix = get4subv6(item.ip);
+      subnet = prefix ? `${prefix}::/64` : "IPv6 Unknown";
     } else {
-      subnet = item.ip; // For IPv4, keep the IP as it is
+      // IPv4: Group by /24 prefix (e.g. 192.168.1.0/24)
+      const parts = item.ip.split(".");
+      if (parts.length === 4) {
+        subnet = `${parts.slice(0, 3).join(".")}.0/24`;
+      } else {
+        subnet = item.ip;
+      }
     }
 
     acc[subnet] = (acc[subnet] || 0) + 1;
@@ -378,37 +456,72 @@ const BarChart: React.FC<BarChartProps> = ({ data }) => {
     labels: labels,
     datasets: [
       {
-        label: "Địa chỉ IP",
+        label: "Số lượng truy cập",
         data: chartData,
-        backgroundColor: "rgba(75, 192, 192, 0.2)",
-        borderColor: "rgba(75, 192, 192, 1)",
-        borderWidth: 1,
+        backgroundColor: "rgba(139, 92, 246, 0.6)", // Modern Violet
+        borderColor: "rgba(139, 92, 246, 1)",
+        borderWidth: 1.5,
+        borderRadius: 6, // Modern rounded bars
       },
     ],
   };
 
-  return (
-    <div>
-      <Bar
-        data={chartConfig}
-        options={{
-          scales: {
-            x: {
-              title: {
-                display: true,
-                text: "Địa chỉ IP",
-              },
-            },
-            y: {
-              beginAtZero: true,
-              title: {
-                display: true,
-                text: "Count",
-              },
-            },
+  const options = {
+    responsive: true,
+    scales: {
+      x: {
+        title: {
+          display: true,
+          text: "Dải Mạng (Subnet /24 hoặc /64)",
+          font: {
+            size: 13,
+            weight: "bold" as const,
           },
-        }}
-      />
+        },
+        grid: {
+          display: false,
+        },
+        ticks: {
+          font: {
+            family: "monospace",
+            size: 11,
+          },
+        },
+      },
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: "Số lượng kết nối (Counts)",
+          font: {
+            size: 13,
+            weight: "bold" as const,
+          },
+        },
+        grid: {
+          color: "rgba(0, 0, 0, 0.05)",
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        display: false,
+      },
+    },
+  };
+
+  return (
+    <div style={{
+      background: "#fff",
+      padding: "20px",
+      borderRadius: "12px",
+      boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
+      marginBottom: "24px"
+    }}>
+      <h3 style={{ marginBottom: "16px", color: "#1f2937", fontWeight: 600 }}>
+        Phân bố truy cập theo Dải mạng (Subnet Distribution)
+      </h3>
+      <Bar data={chartConfig} options={options} />
     </div>
   );
 };

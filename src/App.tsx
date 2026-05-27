@@ -12,7 +12,7 @@ import Filter from "./Find_Logger"
 import Images from "./Imageview"
 import Zns_layout from "./Zns";
 import Dashboard from "./Dashboard";
-import axios from "axios"
+import axios from "./axiosInstance"
 
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -41,7 +41,7 @@ class App extends Component {
             <Menu theme="dark" defaultSelectedKeys={["1"]} mode="inline">
               <Menu.Item key="1">
                 <PieChartFilled />
-                <span>Deshboard</span>
+                <span>Dashboard</span>
                 <Link to="/" />
               </Menu.Item>
               <Menu.Item key="2">

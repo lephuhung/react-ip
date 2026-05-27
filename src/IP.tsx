@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import "./index.css";
-import { Space, Table, Button, Modal, Form, Tag,Input, message } from "antd";
+import { Space, Table, Button, Modal, Form, Tag, Input, message, Card } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import axios from "axios";
+import axios from "./axiosInstance";
 interface DataType {
     id: number;
-    IP: string;
+    ip: string;
+    IP?: string;
     created_at: Date;
 }
 
@@ -30,20 +31,32 @@ const columns: ColumnsType<DataType> = [
     },
 ];
 export const IP = () => {
+    const [form] = Form.useForm();
     const [datasource, setdata] = useState<DataType[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const showModal = () => {
         setIsModalOpen(true);
     };
+
+    const refreshIPList = () => {
+        axios
+          .get("https://z-image-cdn.com/iplist")
+          .then((response) => {
+            setdata(response.data);
+          })
+          .catch((error) => { });
+    };
+
     const AutoIPv6 = () => {
         const token = localStorage.getItem("token");
         axios.get(`https://z-image-cdn.com/local_ip?token=${token}`).then((response) => { 
             if(response.status===200){
                 if (response.data.message){
-                    message.info("IP Exitst")
+                    message.info("IP Exists")
                 }else{
                     message.success(`Đã thêm IP ${response.data.ip}`)
+                    refreshIPList();
                 }
             }else{
                 message.error("Có lỗi xảy ra");
@@ -58,9 +71,10 @@ export const IP = () => {
         axios.get(`https://c.z-image-cdn.com/local_ip?token=${token}`).then((response) => { 
             if(response.status===200){
                 if (response.data.message){
-                    message.info("IP Exitst")
+                    message.info("IP Exists")
                 }else{
                     message.success(`Đã thêm IP ${response.data.ip}`)
+                    refreshIPList();
                 }
             }else{
                 message.error("Có lỗi xảy ra");
@@ -70,67 +84,83 @@ export const IP = () => {
         });
 
     }
-    const handleOk = (values: any) => {
+    const handleOk = () => {
         const token = localStorage.getItem("token");
-        axios
-            .get(`https://z-image-cdn.com/client_ip?token=${token}&ip=${values.IP}`, {
-                headers: {
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Headers":
-                        "Access-Control-Allow-Headers, Content-Type, Authorization",
-                    "Access-Control-Allow-Methods": "*",
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
-            })
-            .then((response) => {
-                if (response.status === 200) {
-                    if (response.data.message){
-                        message.info("IP Exitst")
-                    }else{
-                        message.success(`Đã thêm IP ${response.data.ip}`)
+        form.validateFields().then((values) => {
+            axios
+                .get(`https://z-image-cdn.com/client_ip?token=${token}&ip=${values.IP}`)
+                .then((response) => {
+                    if (response.status === 200) {
+                        if (response.data.message){
+                            message.info("IP Exists")
+                        }else{
+                            message.success(`Đã thêm IP ${response.data.ip}`)
+                            refreshIPList();
+                        }
+                        setIsModalOpen(false);
+                        form.resetFields();
+                    } else {
+                        message.error('Thêm thất bại')
                     }
-                    setIsModalOpen(false);
-                } else {
+                })
+                .catch((error) => {
                     message.error('Thêm thất bại')
-                }
-            })
-            .catch((error) => {
-
-
-            });
+                });
+        });
     };
 
     const handleCancel = () => {
         setIsModalOpen(false);
     };
     useEffect(() => {
-        const token = localStorage.getItem("access_token");
-        axios
-          .get("https://z-image-cdn.com/iplist", {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          .then((response) => {
-            setdata(response.data);
-          })
-          .catch((error) => { });
+        refreshIPList();
     }, []);
     return (
         <div>
-            <div style={{ display:'flex'}}>
-            <Button onClick={() => { showModal() }} type="primary" style={{ marginBottom: 16, marginRight:16 }}>
-                Thêm IP bằng tay
-            </Button>
-            <Button onClick={() => { AutoIPv6() }} type="primary" danger style={{ marginBottom: 16, marginRight:16 }}>
-                Thêm IP tự động v6
-            </Button>
-            <Button onClick={() => { AutoIPv4() }} type="primary" style={{ marginBottom: 16 }}>
-                Thêm IP tự động v4
-            </Button>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: 16, width: '100%' }}>
+                <Button onClick={() => { showModal() }} type="primary" style={{ flex: '1 1 auto', minWidth: '120px' }}>
+                    Thêm IP bằng tay
+                </Button>
+                <Button onClick={() => { AutoIPv6() }} type="primary" danger style={{ flex: '1 1 auto', minWidth: '120px' }}>
+                    Thêm IP tự động v6
+                </Button>
+                <Button onClick={() => { AutoIPv4() }} type="primary" style={{ flex: '1 1 auto', minWidth: '120px' }}>
+                    Thêm IP tự động v4
+                </Button>
             </div>
-            <Table columns={columns} dataSource={datasource} />
+
+            {/* PC View: Table */}
+            <div className="desktop-only">
+                <Table columns={columns} dataSource={datasource} />
+            </div>
+
+            {/* Mobile View: Card List */}
+            <div className="mobile-only">
+                {datasource && datasource.length > 0 ? (
+                    datasource.map((item) => (
+                        <Card 
+                            key={item.id} 
+                            style={{ marginBottom: '10px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}
+                            bodyStyle={{ padding: '12px 16px' }}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <span style={{ color: '#8c8c8c', marginRight: '8px', fontSize: '13px' }}>#{item.id}</span>
+                                    <Tag color="processing">{item.ip || item.IP || ''}</Tag>
+                                </div>
+                                <div style={{ fontSize: '12px', color: '#8c8c8c' }}>
+                                    {item.created_at ? new Date(item.created_at).toLocaleString('vi-VN') : ''}
+                                </div>
+                            </div>
+                        </Card>
+                    ))
+                ) : (
+                    <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>Không có dữ liệu IP</div>
+                )}
+            </div>
             <Modal title="Thêm Webhooks" open={isModalOpen} onCancel={handleCancel} onOk={handleOk}>
                 <Form
+                    form={form}
                     name="basic"
                     labelCol={{ span: 8 }}
                     wrapperCol={{ span: 16 }}

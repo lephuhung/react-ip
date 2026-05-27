@@ -10,9 +10,10 @@ import {
   message,
   Select,
   Tag,
+  Card,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import axios from "axios";
+import axios from "./axiosInstance";
 import Image from "./image";
 interface DataType {
   id: number;
@@ -21,7 +22,7 @@ interface DataType {
   zalo_name: string;
   webhook_id: number;
   created_at: Date;
-  zalo_number_targets: number;
+  zalo_number_target: number;
 }
 interface Webhooks {
   id: number;
@@ -77,7 +78,7 @@ const columns: ColumnsType<DataType> = [
   },
   {
     title: "Token",
-    key: "toekn",
+    key: "token",
     dataIndex: "token",
     render: (text) => <Image name={text} />,
   },
@@ -101,11 +102,8 @@ export const Agents = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const showModal = () => {
     setIsModalOpen(true);
-    const token = localStorage.getItem("access_token");
     axios
-      .get("https://z-image-cdn.com/webhooks", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      .get("https://z-image-cdn.com/webhooks")
       .then((response) => {
         setwebhooks(response.data);
       })
@@ -115,19 +113,9 @@ export const Agents = () => {
     form.setFieldValue("id", value);
   };
   const handleOk = () => {
-    const token = localStorage.getItem("access_token");
     form.validateFields().then((values) => {
       axios
-        .post("https://z-image-cdn.com/agents/add", values, {
-          headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Headers":
-              "Access-Control-Allow-Headers, Content-Type, Authorization",
-            "Access-Control-Allow-Methods": "*",
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        })
+        .post("https://z-image-cdn.com/agents/add", values)
         .then((response) => {
           if (response.status === 200) {
             message.success("Thêm thành công");
@@ -136,12 +124,10 @@ export const Agents = () => {
             message.error("Thêm thất bại");
           }
         })
-        .catch((error) => {})
-        .catch((e) => {
-          console.error(e);
+        .catch((error) => {
+          console.error("Add agent failed", error);
         });
     });
-    // console.log(values);
   };
 
   const handleCancel = () => {
@@ -164,11 +150,8 @@ export const Agents = () => {
     },
   };
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
     axios
-      .get("https://z-image-cdn.com/agents", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      .get("https://z-image-cdn.com/agents")
       .then((response) => {
         setdata(response.data);
       })
@@ -185,7 +168,44 @@ export const Agents = () => {
       >
         Thêm Agents
       </Button>
-      <Table columns={columns} dataSource={datasource} />
+
+      {/* PC View */}
+      <div className="desktop-only">
+        <Table columns={columns} dataSource={datasource} />
+      </div>
+
+      {/* Mobile View */}
+      <div className="mobile-only">
+        {datasource && datasource.length > 0 ? (
+          datasource.map((item) => (
+            <Card 
+              key={item.id}
+              style={{ marginBottom: '12px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}
+              bodyStyle={{ padding: '16px' }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                <div>
+                  <span style={{ fontWeight: 'bold', fontSize: '15px' }}>{item.name}</span>
+                  <span style={{ marginLeft: '8px', color: '#8c8c8c', fontSize: '12px' }}>#{item.id}</span>
+                </div>
+                <Tag color="purple">{item.zalo_name}</Tag>
+              </div>
+              <div style={{ fontSize: '13px', color: '#555', marginBottom: '10px', lineHeight: '1.6' }}>
+                <div><strong>Zalo Target:</strong> {item.zalo_number_target}</div>
+                <div><strong>Webhook ID:</strong> {item.webhook_id}</div>
+                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <strong>Token:</strong> <Image name={item.token as any} />
+                </div>
+              </div>
+              <div style={{ fontSize: '11px', color: '#bfbfbf', textAlign: 'right' }}>
+                {formatDateTime(item.created_at as any)}
+              </div>
+            </Card>
+          ))
+        ) : (
+          <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>Không có dữ liệu Agents</div>
+        )}
+      </div>
       <Modal title="Basic Modal" open={isModalOpen} onOk={handleOk} onCancel={handleCancel}>
         <Form
           {...layout}
@@ -215,9 +235,9 @@ export const Agents = () => {
               allowClear
             >
               {webhooks &&
-                webhooks.map((webhook: Webhooks, index: number) => {
+                webhooks.map((webhook: Webhooks) => {
                   return (
-                    <Option value={webhook.id}>{webhook.webhook_name}</Option>
+                    <Option key={webhook.id} value={webhook.id}>{webhook.webhook_name}</Option>
                   );
                 })}
             </Select>

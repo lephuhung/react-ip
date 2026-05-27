@@ -1,23 +1,29 @@
-import axios from 'axios'
+import axios from 'axios';
 
-const API_URL = 'https://z-image-cdn.com';
+const instance = axios.create();
 
-axios.interceptors.request.use(
+instance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
-    console.log(token);
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+    const isTargetApi = config.url && (config.url.includes('z-image-cdn.com') || config.url.startsWith('/'));
+    
+    if (token && isTargetApi) {
+      if (config.headers && typeof config.headers.set === 'function') {
+        if (!config.headers.has('Authorization') && !config.headers.has('authorization')) {
+          config.headers.set('Authorization', `Bearer ${token}`);
+        }
+      } else {
+        config.headers = config.headers || {};
+        if (!config.headers['Authorization'] && !config.headers['authorization']) {
+          config.headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
     }
-    console.log(config);
     return config;
   },
   (error) => {
-    Promise.reject(error);
+    return Promise.reject(error);
   }
 );
-const api = axios.create({
-  baseURL: API_URL
-});
 
-export default api;
+export default instance;

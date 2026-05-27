@@ -2,12 +2,12 @@ import React, { useEffect, useState } from "react";
 import "./index.css";
 import { Space, Button, Row, Col, message, Card, Modal, Form, Input } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import axios from "axios";
+import axios from "./axiosInstance";
 import { useCopyToClipboard } from './usehooks';
 
 type Props = { name: string, url: string }
 
-export const IP = () => {
+export const ImageView = () => {
     const [datasource, setdata] = useState<Props[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -17,8 +17,7 @@ export const IP = () => {
     const handleOk = (values: any) => {
         const token = localStorage.getItem("token");
         axios
-            .post(`https://z-image-cdn.com/download_image?token=${token}`,values
-            )
+            .post(`https://z-image-cdn.com/download_image?token=${token}`, values)
             .then((response) => {
                 if (response.status === 200) {
                     message.success("Thêm thành công");
@@ -52,13 +51,13 @@ export const IP = () => {
             </Button>
             <Row gutter={[16, 16]}>
                 {
-                    datasource.map((item, index) => {
-                        if (!item.url.includes(".DS_Store")){
-                        return (<Col span={4} >
-                            <Image key={index} url={item.url} name={item.name} />
-                        </Col>)
-                        }
-                    })
+                    datasource
+                        .filter((item) => !item.url.includes(".DS_Store"))
+                        .map((item, index) => (
+                            <Col key={index} span={4}>
+                                <Image url={item.url} name={item.name} />
+                            </Col>
+                        ))
                 }
             </Row>
             <Modal title="Tải Image" open={isModalOpen} onCancel={handleCancel}>
@@ -95,7 +94,7 @@ export const IP = () => {
         </div>
     );
 };
-export default IP;
+export default ImageView;
 
 const Image = ({ url, name, }: Props) => {
     const [value, copy] = useCopyToClipboard()
